@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
+use crate::config::Config;
 use crate::entry::{Day, Note, Record};
+use crate::stream::Vault;
 
 // TODO: Rethink Names here
 pub enum Pane {
@@ -38,7 +40,7 @@ pub enum Field {
 }
 
 pub struct App {
-    pub vault: PathBuf,
+    pub vault: Vault,
 
     // NOTE: This might bite me. If we are loading from disk
     // 365 notes for a year, for example, this sohuld be ok. But
@@ -56,9 +58,9 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(vault: PathBuf) -> App {
+    pub fn new(config: &Config) -> App {
         Self {
-            vault,
+            vault: Vault::new(config),
             days: Vec::new(),
             day_cursor: 0,
             notes: Vec::new(),
@@ -69,11 +71,15 @@ impl App {
         }
     }
 
-    // This keeps the days in check, making shure we get the days accesses and
-    // modified as needed.
-    pub fn today_mut(&mut self) -> &mut Day {
+    pub fn flush_journal(&mut self) -> std::io::Result<()> {
+        let index = self.today_index();
+        self.vault
+            .append_journal_records(&mut self.days[index].records)
+    }
+
+    fn today_index(&mut self) -> usize {
         let today = chrono::Local::now().date_naive();
-        let idx = match self.days.iter().position(|d| d.date == today) {
+        match self.days.iter().position(|d| d.date == today) {
             Some(i) => i,
             None => {
                 self.days.push(Day {
@@ -82,8 +88,14 @@ impl App {
                 });
                 self.days.len() - 1
             }
-        };
-        &mut self.days[idx]
+        }
+    }
+
+    // This keeps the days in check, making shure we get the days accesses and
+    // modified as needed.
+    pub fn today_mut(&mut self) -> &mut Day {
+        let today_index = self.today_index();
+        &mut self.days[today_index]
     }
 
     pub fn push_record(&mut self, text: String) {

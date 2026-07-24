@@ -1,7 +1,7 @@
 use bytes::Buf;
 use chrono::{Local, NaiveDate, NaiveTime};
 use serde::de::Error;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
@@ -19,7 +19,7 @@ pub struct Vault {
 }
 
 impl Vault {
-    pub fn new(&self, config: &Config) -> Vault {
+    pub fn new(config: &Config) -> Vault {
         Self {
             journal_path: Path::new(&config.diane_root).join(JOURNAL_PATH),
             archive_path: Path::new(&config.diane_root).join(ARCHIVE_PATH),
@@ -28,30 +28,30 @@ impl Vault {
     }
 
     pub fn append_journal_records(&self, records: &mut Vec<Record>) -> io::Result<()> {
+        if records.is_empty() {
+            return Ok(());
+        }
+
         let reference_date = self.reference_day.format("%Y-%m-%d").to_string();
         let path = Path::new(&self.journal_path).join(format!("{}{}", reference_date, r".md"));
 
-        let mut temp_file = NamedTempFile::new_in(self.journal_path.clone())?;
-        let mut record_stream = "".to_owned();
+        fs::create_dir_all(&self.journal_path)?;
 
-        for mut record in records.drain(..) {
-            let at = record.at.format("%H:%M").to_string();
-            record.text.insert_str(0, &format!("\n- {at}"));
+        let mut file = OpenOptions::new().create(true).append(true).open(&path)?;
 
-            if path.exists() {
-                let mut existing_file = File::open(&path)?;
-                io::copy(&mut existing_file, &mut temp_file)?;
-                record.text.insert_str(0, &format!("# {reference_date}"));
-            }
-
-            record_stream += &record.text;
+        let mut out = String::new();
+        if file.metadata()?.len() == 0 {
+            out.push_str(&format!("# {reference_date}\n\n"));
+        }
+        for record in records.iter() {
+            let at = record.at.format("%H:%M");
+            out.push_str(&format!("- {at} {}\n", record.text.trim()));
         }
 
-        temp_file.write_all(&record_stream.into_bytes())?;
-        temp_file.flush()?;
+        file.write_all(out.as_bytes())?;
+        file.sync_all()?;
 
-        temp_file.persist(path)?;
-
+        records.clear();
         Ok(())
     }
 }

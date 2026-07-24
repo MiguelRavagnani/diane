@@ -11,6 +11,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let app = App::new(cfg.diane_root);
+    let app = App::new(&cfg);
     Ok(())
 }

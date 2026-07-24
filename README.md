@@ -6,8 +6,10 @@ Inspired by Twin Peaks.
 
 - [x] Define the basic data model for the app
 - [ ] Make sure it compiles (kind of)
-- [ ] Settle for a file format
+- [x] Settle for a file format
 - [ ] Write the file parsers, sink adn serializers
+  - [x] Journal stream
+  - [ ] Archive stream
 - [ ] Write the capture as a CLI
 - [ ] Start drafting the TUI
 - [ ] TBD

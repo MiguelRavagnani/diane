@@ -1,5 +1,6 @@
-use chrono::{NaiveDate, NaiveTime};
 use std::path::PathBuf;
+
+use crate::entry::{Day, Note, Record};
 
 // TODO: Rethink Names here
 pub enum Pane {
@@ -12,22 +13,6 @@ pub enum Pane {
 pub enum CurrentlyEditing {
     ArchiveEntryBody,
     ArchiveEntryTitle,
-}
-
-pub struct Note {
-    pub title: String,
-    pub body: String,
-    pub frontmatter: Vec<(String, String)>,
-}
-
-pub struct Record {
-    pub at: NaiveTime,
-    pub text: String,
-}
-
-pub struct Day {
-    pub date: NaiveDate,
-    pub records: Vec<Record>,
 }
 
 pub enum Screen {
@@ -84,8 +69,21 @@ impl App {
         }
     }
 
+    // This keeps the days in check, making shure we get the days accesses and
+    // modified as needed.
     pub fn today_mut(&mut self) -> &mut Day {
-        todo!()
+        let today = chrono::Local::now().date_naive();
+        let idx = match self.days.iter().position(|d| d.date == today) {
+            Some(i) => i,
+            None => {
+                self.days.push(Day {
+                    date: today,
+                    records: Vec::new(),
+                });
+                self.days.len() - 1
+            }
+        };
+        &mut self.days[idx]
     }
 
     pub fn push_record(&mut self, text: String) {

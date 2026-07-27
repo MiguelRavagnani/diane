@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+assert_cmd = "2.2.2"
 bytes = "1.12.1"
 chrono = "0.4.45"
 clap = "4.6.4"

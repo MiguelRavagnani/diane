@@ -1,5 +1,5 @@
 use diane::app::App;
-use diane::cli::GetMatches;
+use diane::cli::get_matches;
 use diane::config::Config;
 
 use std::{error::Error, io};
@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let _app = App::new(&cfg);
-    let _matches = GetMatches();
+    let _matches = get_matches();
     Ok(())
 }
 

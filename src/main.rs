@@ -14,11 +14,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let _app = App::new(&cfg);
+    let mut app = App::new(&cfg);
 
     let input = Cli::parse();
     match input.input_text {
-        Some(text) => println!("CLI mode: {}", text),
+        Some(text) => {
+            println!("CLI mode: {}", text);
+            app.push_record(text);
+            _ = app.flush_journal()?;
+        }
         None => println!("Here we run TUI!"),
     }
     Ok(())
@@ -30,7 +34,7 @@ mod tests {
 
     #[test]
     fn runs() {
-        let mut cmd = Command::cargo_bin("diane:").unwrap();
+        let mut cmd = Command::cargo_bin("diane").unwrap();
         cmd.assert().success();
     }
 }

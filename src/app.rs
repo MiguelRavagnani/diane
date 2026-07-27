@@ -104,21 +104,22 @@ impl App {
     }
 
     pub fn commit_pair(&mut self) {
+        todo!()
         // Mode::Browsing could be the default in the enum definition,
         // but i prefere to have this replace written explicitly.
-        if let Mode::EditingPair { key, value, .. } =
-            std::mem::replace(&mut self.mode, Mode::Browsing)
-        {
-            if key.trim().is_empty() {
-                return;
-            }
-            if let Some(note) = self.selected_note_mut() {
-                match note.frontmatter.iter_mut().find(|(k, _)| *k == key) {
-                    Some(slot) => slot.1 = value,
-                    None => note.frontmatter.push((key, value)),
-                }
-            }
-        }
+        // if let Mode::EditingPair { key, value, .. } =
+        //     std::mem::replace(&mut self.mode, Mode::Browsing)
+        // {
+        //     if key.trim().is_empty() {
+        //         return;
+        //     }
+        //     if let Some(note) = self.selected_note_mut() {
+        //         match note.frontmatter.iter_mut().find(|(k, _)| *k == key) {
+        //             Some(slot) => slot.1 = value,
+        //             None => note.frontmatter.push((key, value)),
+        //     }
+        // }
+        // }
     }
 
     pub fn selected_note_mut(&mut self) -> Option<&mut Note> {

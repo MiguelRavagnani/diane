@@ -55,7 +55,7 @@ impl Vault {
         Ok(())
     }
 
-    pub fn save_archive_note(&self, note: Note) -> io::Result<()> {
+    pub fn save_archive_note(&self, note: &Note) -> io::Result<()> {
         if !note.is_valid() {
             return Ok(());
         }
@@ -69,6 +69,6 @@ impl Vault {
         tmp.flush()?;
         tmp.persist(&path)?;
 
-        todo!()
+        Ok(())
     }
 }

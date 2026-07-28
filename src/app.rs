@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use chrono::Local;
 
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};
@@ -78,7 +78,7 @@ impl App {
     }
 
     fn today_index(&mut self) -> usize {
-        let today = chrono::Local::now().date_naive();
+        let today = Local::now().date_naive();
         match self.days.iter().position(|d| d.date == today) {
             Some(i) => i,
             None => {
@@ -98,31 +98,20 @@ impl App {
         &mut self.days[today_index]
     }
 
+    pub fn selected_note_mut(&mut self) -> Option<&mut Note> {
+        self.notes.get_mut(self.note_cursor)
+    }
+
     pub fn push_record(&mut self, text: String) {
         let at = chrono::Local::now().time();
         self.today_mut().records.push(Record { at, text });
     }
 
-    pub fn commit_pair(&mut self) {
-        todo!()
-        // Mode::Browsing could be the default in the enum definition,
-        // but i prefere to have this replace written explicitly.
-        // if let Mode::EditingPair { key, value, .. } =
-        //     std::mem::replace(&mut self.mode, Mode::Browsing)
-        // {
-        //     if key.trim().is_empty() {
-        //         return;
-        //     }
-        //     if let Some(note) = self.selected_note_mut() {
-        //         match note.frontmatter.iter_mut().find(|(k, _)| *k == key) {
-        //             Some(slot) => slot.1 = value,
-        //             None => note.frontmatter.push((key, value)),
-        //     }
-        // }
-        // }
-    }
-
-    pub fn selected_note_mut(&mut self) -> Option<&mut Note> {
-        self.notes.get_mut(self.note_cursor)
+    pub fn save_current_note(&mut self) -> std::io::Result<()> {
+        let Some(note) = self.notes.get_mut(self.note_cursor) else {
+            return Ok(());
+        };
+        note.updated = Local::now().date_naive();
+        self.vault.save_archive_note(note)
     }
 }

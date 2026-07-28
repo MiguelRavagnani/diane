@@ -6,6 +6,9 @@ use clap::Parser;
 pub struct Cli {
     #[arg(value_parser = validade_text)]
     pub input_text: Option<String>,
+
+    #[arg(short, long)]
+    pub capture: bool,
 }
 
 fn validade_text(s: &str) -> Result<String, String> {

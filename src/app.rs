@@ -114,4 +114,37 @@ impl App {
         note.updated = Local::now().date_naive();
         self.vault.save_archive_note(note)
     }
+
+    fn capture_oneshot(&mut self, text: &str) -> std::io::Result<()> {
+        let text = text.trim();
+        if text.is_empty() {
+            return Ok(());
+        }
+
+        self.today_mut().records.push(Record {
+            at: chrono::Local::now().time(),
+            text: text.to_string(),
+        });
+        self.flush_journal()
+    }
+
+    pub fn commit_capture(&mut self) {
+        let old = std::mem::replace(&mut self.mode, Mode::Browsing);
+
+        let Mode::Capturing { text } = old else {
+            return;
+        };
+
+        let text = text.trim();
+        if text.is_empty() {
+            return;
+        }
+
+        let record = Record {
+            at: Local::now().time(),
+            text: text.to_string(),
+        };
+
+        self.today_mut().records.push(record);
+    }
 }

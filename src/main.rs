@@ -1,8 +1,9 @@
-use clap::Parser;
 use diane::app::App;
 use diane::cli::Cli;
 use diane::config::Config;
+use diane::ui::run;
 
+use clap::Parser;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -23,7 +24,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             app.push_record(text);
             _ = app.flush_journal()?;
         }
-        None => println!("Here we run TUI!"),
+        None => {
+            if input.capture {
+                let mut terminal = ratatui::init();
+                run(&mut terminal, &mut app);
+            } else {
+                println!("Here we run TUI!");
+            }
+        }
     }
     Ok(())
 }

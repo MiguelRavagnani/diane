@@ -33,7 +33,7 @@ impl Vault {
         }
 
         let reference_date = self.reference_day.format("%Y-%m-%d").to_string();
-        let path = Path::new(&self.journal_path).join(format!("{}{}", reference_date, r".md"));
+        let path = Path::new(&self.journal_path).join(format!("{}.md", reference_date));
 
         fs::create_dir_all(&self.journal_path)?;
 
@@ -55,31 +55,20 @@ impl Vault {
         Ok(())
     }
 
-    pub fn store_archive_note(&self, records: &mut Vec<Record>) -> io::Result<()> {
-        if records.is_empty() {
+    pub fn save_archive_note(&self, note: Note) -> io::Result<()> {
+        if !note.is_valid() {
             return Ok(());
         }
 
-        let reference_date = self.reference_day.format("%Y-%m-%d").to_string();
-        let path = Path::new(&self.journal_path).join(format!("{}{}", reference_date, r".md"));
+        let path = Path::new(&self.archive_path).join(format!("{}.md", note.slug));
 
-        fs::create_dir_all(&self.journal_path)?;
+        fs::create_dir_all(&self.archive_path)?;
 
-        let mut file = OpenOptions::new().create(true).append(true).open(&path)?;
+        let mut tmp = NamedTempFile::new_in(&self.archive_path)?;
+        tmp.write_all(note.to_text().as_bytes())?;
+        tmp.flush()?;
+        tmp.persist(&path)?;
 
-        let mut out = String::new();
-        if file.metadata()?.len() == 0 {
-            out.push_str(&format!("# {reference_date}\n\n"));
-        }
-        for record in records.iter() {
-            let at = record.at.format("%H:%M");
-            out.push_str(&format!("- {at} {}\n", record.text.trim()));
-        }
-
-        file.write_all(out.as_bytes())?;
-        file.sync_all()?;
-
-        records.clear();
-        Ok(())
+        todo!()
     }
 }

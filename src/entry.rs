@@ -11,7 +11,7 @@ pub struct Note {
 impl Note {
     pub fn new(title: String, body: String, created: Option<NaiveDate>) -> Result<Note, String> {
         if title.is_empty() {
-            return Err(format!("Missing title."));
+            return Err("Missing title.".to_string());
         }
 
         let now = Local::now().date_naive();
@@ -37,6 +37,16 @@ impl Note {
 
         true
     }
+
+    pub fn to_text(&self) -> String {
+        format!(
+            "---\ntitle: {}\ncreated: {}\nupdated: {}\ntags: todo\n---\n\n{}",
+            self.title,
+            self.created.format("%Y-%m-%d").to_string().to_owned(),
+            self.updated.format("%Y-%m-%d").to_string().to_owned(),
+            self.body
+        )
+    }
 }
 
 fn slugify(title: &str) -> String {
@@ -59,4 +69,30 @@ pub struct Record {
 pub struct Day {
     pub date: NaiveDate,
     pub records: Vec<Record>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample() -> Note {
+        Note::new("Kafka setup".into(), "body".into(), None).unwrap()
+    }
+
+    #[test]
+    fn new_derives_slug_from_title() {
+        assert_eq!(sample().slug, "kafka-setup");
+    }
+
+    #[test]
+    fn slug_lowercases_and_hyphenates() {
+        assert_eq!(slugify("DSP / FFT notes"), "dsp-fft-notes");
+    }
+
+    #[test]
+    fn new_uses_given_created_date() {
+        let d = NaiveDate::from_ymd_opt(2020, 1, 2).unwrap();
+        let note = Note::new("x".into(), String::new(), Some(d)).unwrap();
+        assert_eq!(note.created, d);
+    }
 }

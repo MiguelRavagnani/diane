@@ -27,7 +27,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         None => {
             if input.capture {
                 let mut terminal = ratatui::init();
-                run(&mut terminal, &mut app);
+                let _result = run(&mut terminal, &mut app);
+                ratatui::restore();
             } else {
                 println!("Here we run TUI!");
             }

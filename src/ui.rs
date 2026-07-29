@@ -17,9 +17,10 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::R
     };
     loop {
         terminal.draw(|frame| draw(frame, app))?;
-        if let Event::Key(key) = event::read()?
-            && handle_key(app, key)
-        {
+        if let Event::Key(key) = event::read()? {
+            handle_key(app, key);
+        }
+        if app.should_quit {
             break;
         }
     }
@@ -94,10 +95,11 @@ fn handle_capturing(app: &mut App, key: KeyEvent) {
             text.pop();
         }
         KeyCode::Esc => {
-            app.mode = Mode::Browsing;
+            app.should_quit = true;
         }
         KeyCode::Enter => {
             app.commit_capture();
+            app.should_quit = true;
         }
         _ => {}
     }

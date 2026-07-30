@@ -3,9 +3,9 @@ use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::{Constraint, Layout, Position, Rect},
-    style::Style,
-    text::Text,
-    widgets::{Block, Clear, Paragraph},
+    style::{Modifier, Style},
+    text::{Line, Span, Text},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph},
 };
 
 use crate::app::{App, Mode};
@@ -58,20 +58,54 @@ fn draw(frame: &mut Frame, app: &App) {
 }
 
 fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
-    let area = centered_rect(60, 3, frame.area());
+    let area = centered_rect(60, 5, frame.area());
+
+    let rows = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(3),
+        Constraint::Length(1),
+    ])
+    .split(area);
+
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            "diane:",
+            Style::new()
+                .fg(theme::RED_F53D8F)
+                .add_modifier(Modifier::BOLD),
+        ))),
+        rows[0],
+    );
+    frame.render_widget(
+        Paragraph::new(
+            Line::from(Span::styled(
+                "esc cancels | enter files",
+                Style::new()
+                    .fg(theme::GRAY_DDD0D6)
+                    .add_modifier(Modifier::DIM),
+            ))
+            .right_aligned(),
+        ),
+        rows[0],
+    );
 
     let block = Block::bordered()
-        .title(" diane: ")
-        .border_style(Style::default().fg(theme::RED_6E0B22))
-        .title_style(Style::default().fg(theme::RED_F53D8F));
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(theme::RED_C4184F));
 
-    let paragraph = Paragraph::new(Text::from(text))
-        .style(Style::default().fg(theme::GRAY_DDD0D6))
-        .block(block);
+    let inner = block.inner(rows[1]);
+    frame.render_widget(Clear, rows[1]);
+    frame.render_widget(block, rows[1]);
 
-    frame.render_widget(Clear, area);
-    frame.render_widget(paragraph, area);
-    frame.set_cursor_position(Position::new(area.x + character_index + 1, area.y + 1));
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(" > ", Style::new().fg(theme::RED_C4184F)),
+            Span::styled(text, Style::new().fg(theme::GRAY_DDD0D6)),
+        ])),
+        inner,
+    );
+
+    frame.set_cursor_position(Position::new(inner.x + 3 + character_index, inner.y));
 }
 
 fn handle_key(app: &mut App, key: KeyEvent) -> bool {

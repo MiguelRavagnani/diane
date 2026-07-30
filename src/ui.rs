@@ -3,12 +3,13 @@ use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
+    style::Style,
     text::Text,
     widgets::{Block, Clear, Paragraph},
 };
 
 use crate::app::{App, Mode};
+use crate::theme;
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
     // TODO: This ill only work or capturing now.
@@ -52,18 +53,15 @@ fn draw(frame: &mut Frame, app: &App) {
 }
 
 fn draw_capture_poopup(frame: &mut Frame, text: &str) {
-    let col1 = Color::Rgb(0xef, 0xa0, 0x10);
-    let col2 = Color::Rgb(0xd8, 0x69, 0x0b);
-
     let area = centered_rect(60, 3, frame.area());
 
     let block = Block::bordered()
         .title(" diane: ")
-        .border_style(Style::default().fg(col2))
-        .title_style(Style::default().fg(col2));
+        .border_style(Style::default().fg(theme::RED_6E0B22))
+        .title_style(Style::default().fg(theme::RED_F53D8F));
 
     let paragraph = Paragraph::new(Text::from(text))
-        .style(Style::default().fg(col1))
+        .style(Style::default().fg(theme::GRAY_DDD0D6))
         .block(block);
 
     frame.render_widget(Clear, area);
@@ -99,6 +97,7 @@ fn handle_capturing(app: &mut App, key: KeyEvent) {
         }
         KeyCode::Enter => {
             app.commit_capture();
+            app.flush_journal();
             app.should_quit = true;
         }
         _ => {}

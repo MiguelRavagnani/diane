@@ -2,7 +2,7 @@ use crossterm::event::KeyEvent;
 use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
-    layout::{Constraint, Layout, Rect},
+    layout::{Constraint, Layout, Position, Rect},
     style::Style,
     text::Text,
     widgets::{Block, Clear, Paragraph},
@@ -15,6 +15,7 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::R
     // TODO: This ill only work or capturing now.
     app.mode = Mode::Capturing {
         text: String::new(),
+        character_index: 0,
     };
     loop {
         terminal.draw(|frame| draw(frame, app))?;
@@ -47,12 +48,16 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
 }
 
 fn draw(frame: &mut Frame, app: &App) {
-    if let Mode::Capturing { text } = &app.mode {
-        draw_capture_poopup(frame, text);
+    if let Mode::Capturing {
+        text,
+        character_index,
+    } = &app.mode
+    {
+        draw_capture_poopup(frame, text, character_index);
     }
 }
 
-fn draw_capture_poopup(frame: &mut Frame, text: &str) {
+fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     let area = centered_rect(60, 3, frame.area());
 
     let block = Block::bordered()
@@ -66,6 +71,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str) {
 
     frame.render_widget(Clear, area);
     frame.render_widget(paragraph, area);
+    frame.set_cursor_position(Position::new(area.x + character_index + 1, area.y + 1));
 }
 
 fn handle_key(app: &mut App, key: KeyEvent) -> bool {
@@ -83,14 +89,22 @@ fn handle_key(app: &mut App, key: KeyEvent) -> bool {
 }
 
 fn handle_capturing(app: &mut App, key: KeyEvent) {
-    let Mode::Capturing { text } = &mut app.mode else {
+    let Mode::Capturing {
+        text,
+        character_index,
+    } = &mut app.mode
+    else {
         return;
     };
 
     match key.code {
-        KeyCode::Char(c) => text.push(c),
+        KeyCode::Char(c) => {
+            text.push(c);
+            *character_index += 1;
+        }
         KeyCode::Backspace => {
             text.pop();
+            *character_index = character_index.saturating_sub(1);
         }
         KeyCode::Esc => {
             app.should_quit = true;

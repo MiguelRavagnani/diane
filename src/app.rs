@@ -26,6 +26,7 @@ pub enum Mode {
     Browsing,
     Capturing {
         text: String,
+        character_index: u16,
     },
     EditingPair {
         key: String,
@@ -131,7 +132,7 @@ impl App {
     pub fn commit_capture(&mut self) {
         let old = std::mem::replace(&mut self.mode, Mode::Browsing);
 
-        let Mode::Capturing { text } = old else {
+        let Mode::Capturing { text, .. } = old else {
             return;
         };
 

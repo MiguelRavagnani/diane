@@ -141,6 +141,7 @@ fn handle_capturing(app: &mut App, key: KeyEvent) {
             *character_index = character_index.saturating_sub(1);
         }
         KeyCode::Esc => {
+            crate::theme::texture_pattern();
             app.should_quit = true;
         }
         KeyCode::Enter => {

@@ -13,4 +13,7 @@ Inspired by Twin Peaks.
 - [x] Write the capture as a CLI
   - [x] CLI takes simple text stream and appends to journal
 - [ ] Start drafting the TUI
+  - [ ] Popup for only capturing
+    - [ ] ASCii background (https://www.asciiart.eu/ as ref, pretty awesome)
+    - [ ] A lotmore to decide, I'll probably get lost here
 - [ ] TBD

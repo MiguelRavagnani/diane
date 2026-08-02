@@ -8,8 +8,11 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
 };
 
-use crate::app::{App, Mode};
 use crate::theme;
+use crate::{
+    app::{App, Mode},
+    theme::BackgroundArt,
+};
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
     // TODO: This ill only work or capturing now.
@@ -53,6 +56,7 @@ fn draw(frame: &mut Frame, app: &App) {
         character_index,
     } = &app.mode
     {
+        frame.render_widget(BackgroundArt {}, frame.area());
         draw_capture_poopup(frame, text, character_index);
     }
 }
@@ -141,7 +145,6 @@ fn handle_capturing(app: &mut App, key: KeyEvent) {
             *character_index = character_index.saturating_sub(1);
         }
         KeyCode::Esc => {
-            crate::theme::texture_pattern();
             app.should_quit = true;
         }
         KeyCode::Enter => {

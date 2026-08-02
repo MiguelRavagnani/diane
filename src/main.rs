@@ -30,7 +30,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let _result = run(&mut terminal, &mut app);
                 ratatui::restore();
             } else {
-                diane::theme::texture_pattern();
                 println!("Here we run TUI!");
             }
         }

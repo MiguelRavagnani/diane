@@ -9,6 +9,7 @@ use ratatui::{
 // their hex equivalent untill I settle. Then Ill look for more stylistic names
 
 pub const RED_6E0B22: Color = Color::Rgb(0x6e, 0x0b, 0x22);
+pub const RED_9B1239: Color = Color::Rgb(0x9b, 0x12, 0x39);
 pub const RED_C4184F: Color = Color::Rgb(0xc4, 0x18, 0x4f);
 pub const RED_F53D8F: Color = Color::Rgb(0xf5, 0x3d, 0x8f);
 pub const GRAY_150F13: Color = Color::Rgb(0x15, 0x0f, 0x13);
@@ -86,8 +87,12 @@ impl Widget for BackgroundArt {
                     _ => self.at(x as usize, y as usize),
                 };
                 if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
-                    cell.set_char(ch)
-                        .set_style(Style::new().fg(RED_6E0B22).add_modifier(Modifier::DIM));
+                    cell.set_char(ch).set_style(
+                        Style::new()
+                            .fg(RED_9B1239)
+                            .add_modifier(Modifier::DIM)
+                            .add_modifier(Modifier::BOLD),
+                    );
                 }
             }
         }

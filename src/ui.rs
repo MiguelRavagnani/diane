@@ -2,7 +2,8 @@ use crossterm::event::KeyEvent;
 use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
-    layout::{Constraint, Layout, Position, Rect},
+    layout::{Constraint, Flex, Layout, Margin, Position, Rect},
+    macros::row,
     style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
@@ -38,6 +39,7 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
         Constraint::Length(height),
         Constraint::Fill(1),
     ])
+    .flex(Flex::Center)
     .split(area);
 
     let horizontal = Layout::horizontal([
@@ -45,6 +47,7 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
         Constraint::Percentage(percent_x),
         Constraint::Percentage((100 - percent_x) / 2),
     ])
+    .flex(Flex::Center)
     .split(vertical[1]);
 
     horizontal[1]
@@ -59,7 +62,7 @@ fn draw(frame: &mut Frame, app: &App) {
         frame.render_widget(
             BackgroundArt {
                 amp: 3,
-                slope: 3,
+                slope: 2,
                 spacing: 7,
                 thickness: 4,
                 ..Default::default()
@@ -71,14 +74,13 @@ fn draw(frame: &mut Frame, app: &App) {
 }
 
 fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
-    let area = centered_rect(60, 5, frame.area());
+    let area = centered_rect(65, 4, frame.area());
 
-    let rows = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(3),
-        Constraint::Length(1),
-    ])
-    .split(area);
+    frame.render_widget(Clear, area);
+
+    let inner = area.inner(Margin::new(2, 0));
+
+    let rows = Layout::vertical([Constraint::Length(1), Constraint::Length(3)]).split(inner);
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
@@ -93,9 +95,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Paragraph::new(
             Line::from(Span::styled(
                 "esc cancels | enter files",
-                Style::new()
-                    .fg(theme::GRAY_DDD0D6)
-                    .add_modifier(Modifier::DIM),
+                Style::new().fg(theme::GRAY_DDD0D6),
             ))
             .right_aligned(),
         ),

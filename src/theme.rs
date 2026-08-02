@@ -25,17 +25,16 @@ const EDGE_COLLUMN_CHAR: char = '│';
 const FILL_CHAR: char = '•';
 const NEGATIVE_CHAR: char = ' ';
 
-#[derive(Clone, Copy)]
-struct Chevron {
+pub struct BackgroundArt {
     pub amp: isize,
     pub slope: isize,
     pub spacing: isize,
     pub thickness: isize,
-    ch_fill: char,
-    ch_negative: char,
+    pub ch_fill: char,
+    pub ch_negative: char,
 }
 
-impl Default for Chevron {
+impl Default for BackgroundArt {
     fn default() -> Self {
         Self {
             amp: 3,
@@ -48,8 +47,8 @@ impl Default for Chevron {
     }
 }
 
-impl Chevron {
-    pub fn at(&self, x: usize, y: usize) -> char {
+impl BackgroundArt {
+    fn at(&self, x: usize, y: usize) -> char {
         let (x, y) = (x as isize, y as isize);
 
         let half = self.amp * self.slope;
@@ -65,8 +64,6 @@ impl Chevron {
     }
 }
 
-pub struct BackgroundArt {}
-
 impl Widget for BackgroundArt {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
@@ -77,14 +74,6 @@ impl Widget for BackgroundArt {
         let last_col = cols.saturating_sub(1);
         let last_row = rows.saturating_sub(1);
 
-        let chevron = Chevron {
-            amp: 3,
-            slope: 2,
-            spacing: 7,
-            thickness: 4,
-            ..Default::default()
-        };
-
         for y in 0..rows {
             for x in 0..cols {
                 let ch = match (x, y) {
@@ -94,7 +83,7 @@ impl Widget for BackgroundArt {
                     (x, y) if x == last_col && y == last_row => BOTTOM_RIGHT_CORNER_CHAR,
                     (x, _) if x == 0 || x == last_col => EDGE_COLLUMN_CHAR,
                     (_, y) if y == 0 || y == last_row => EDGE_ROW_CHAR,
-                    _ => chevron.at(x as usize, y as usize),
+                    _ => self.at(x as usize, y as usize),
                 };
                 if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
                     cell.set_char(ch)

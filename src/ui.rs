@@ -56,7 +56,16 @@ fn draw(frame: &mut Frame, app: &App) {
         character_index,
     } = &app.mode
     {
-        frame.render_widget(BackgroundArt {}, frame.area());
+        frame.render_widget(
+            BackgroundArt {
+                amp: 3,
+                slope: 3,
+                spacing: 7,
+                thickness: 4,
+                ..Default::default()
+            },
+            frame.area(),
+        );
         draw_capture_poopup(frame, text, character_index);
     }
 }

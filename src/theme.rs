@@ -18,6 +18,7 @@ const TOP_RIGHT_CORNER_CHAR: char = '┐';
 const BOTTOM_LEFT_CORNER_CHAR: char = '└';
 const BOTTOM_RIGHT_CORNER_CHAR: char = '┘';
 const EDGE_COLLUMN_CHAR: char = '│';
+const PATTERN: &[u8] = br"//\\";
 
 fn get_terminal_constraints() -> (f32, f32) {
     match terminal::size() {
@@ -37,40 +38,25 @@ pub fn texture_pattern() {
     let cols = diameter as i32;
     let rows = (diameter * FONT_CORRECTION) as i32;
 
-    let radius = diameter / 2.0;
-    let center_x = cols as f32 / 2.0;
-    let center_y = rows as f32 / 2.0;
-
     let mut buffer = String::with_capacity((rows * (cols + 1)) as usize);
+
+    let last_col = cols.saturating_sub(1);
+    let last_row = rows.saturating_sub(1);
 
     for y in 0..rows {
         for x in 0..cols {
-            let dx = (x as f32 - center_x) * FONT_CORRECTION;
-            let dy = y as f32 - center_y;
-
-            if x == 0 && y == 0 {
-                buffer.push(TOP_LEFT_CORNER_CHAR);
-            } else if x == cols.saturating_sub_unsigned(1) && y == 0 {
-                buffer.push(TOP_RIGHT_CORNER_CHAR);
-            } else if y == rows.saturating_sub_unsigned(1) && x == 0 {
-                buffer.push(BOTTOM_LEFT_CORNER_CHAR);
-            } else if x == cols.saturating_sub_unsigned(1) && y == rows.saturating_sub_unsigned(1) {
-                buffer.push(BOTTOM_RIGHT_CORNER_CHAR);
-            } else if x == 0 || x == cols.saturating_sub_unsigned(1) {
-                buffer.push(EDGE_COLLUMN_CHAR);
-            } else if y == 0 || y == rows.saturating_sub_unsigned(1) {
-                buffer.push(EDGE_ROW_CHAR);
-            } else {
-                buffer.push(' ');
-            }
-            // if (dx * dx) + (dy * dy) <= (radius * FONT_CORRECTION).powi(2) {
-            //     buffer.push(BOTTOM_ROW_CHAR);
-            // } else {
-            //     buffer.push(EDGE_COLLUMN_CHAR);
-            // }
+            let ch = match (x, y) {
+                (0, 0) => TOP_LEFT_CORNER_CHAR,
+                (x, 0) if x == last_col => TOP_RIGHT_CORNER_CHAR,
+                (0, y) if y == last_row => BOTTOM_LEFT_CORNER_CHAR,
+                (x, y) if x == last_col && y == last_row => BOTTOM_RIGHT_CORNER_CHAR,
+                (x, _) if x == 0 || x == last_col => EDGE_COLLUMN_CHAR,
+                (_, y) if y == 0 || y == last_row => EDGE_ROW_CHAR,
+                _ => PATTERN[(x + y) as usize % PATTERN.len()] as char,
+            };
+            buffer.push(ch);
         }
         buffer.push('\n');
     }
-
     println!("{}", buffer);
 }

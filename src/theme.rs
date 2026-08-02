@@ -18,7 +18,8 @@ const TOP_RIGHT_CORNER_CHAR: char = '┐';
 const BOTTOM_LEFT_CORNER_CHAR: char = '└';
 const BOTTOM_RIGHT_CORNER_CHAR: char = '┘';
 const EDGE_COLLUMN_CHAR: char = '│';
-const PATTERN: &[u8] = br"//\\";
+const FILL_CHAR: char = '•';
+const NEGATIVE_CHAR: char = ' ';
 
 fn get_terminal_constraints() -> (f32, f32) {
     match terminal::size() {
@@ -43,6 +44,14 @@ pub fn texture_pattern() {
     let last_col = cols.saturating_sub(1);
     let last_row = rows.saturating_sub(1);
 
+    let chevron = Chevron {
+        amp: 3,
+        slope: 2,
+        spacing: 7,
+        thickness: 4,
+        ..Default::default()
+    };
+
     for y in 0..rows {
         for x in 0..cols {
             let ch = match (x, y) {
@@ -52,11 +61,51 @@ pub fn texture_pattern() {
                 (x, y) if x == last_col && y == last_row => BOTTOM_RIGHT_CORNER_CHAR,
                 (x, _) if x == 0 || x == last_col => EDGE_COLLUMN_CHAR,
                 (_, y) if y == 0 || y == last_row => EDGE_ROW_CHAR,
-                _ => PATTERN[(x + y) as usize % PATTERN.len()] as char,
+                _ => chevron.at(x as usize, y as usize),
             };
             buffer.push(ch);
         }
         buffer.push('\n');
     }
     println!("{}", buffer);
+}
+
+#[derive(Clone, Copy)]
+pub struct Chevron {
+    pub amp: isize,
+    pub slope: isize,
+    pub spacing: isize,
+    pub thickness: isize,
+    ch_fill: char,
+    ch_negative: char,
+}
+
+impl Default for Chevron {
+    fn default() -> Self {
+        Self {
+            amp: 3,
+            slope: 2,
+            spacing: 5,
+            thickness: 2,
+            ch_fill: FILL_CHAR,
+            ch_negative: NEGATIVE_CHAR,
+        }
+    }
+}
+
+impl Chevron {
+    pub fn at(&self, x: usize, y: usize) -> char {
+        let (x, y) = (x as isize, y as isize);
+
+        let half = self.amp * self.slope;
+        let t = x.rem_euclid(2 * half);
+        let wave = (t - half).abs();
+
+        let v = (y * self.slope - wave).rem_euclid(self.spacing * self.slope);
+
+        if v < self.thickness * self.slope {
+            return self.ch_fill;
+        };
+        self.ch_negative
+    }
 }

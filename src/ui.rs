@@ -1,11 +1,10 @@
-use crossterm::event::KeyEvent;
 use ratatui::{
     Frame,
-    crossterm::event::{self, Event, KeyCode, KeyEventKind},
+    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Flex, Layout, Margin, Position, Rect},
     style::{Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, BorderType, Clear, Paragraph},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph},
 };
 
 use crate::theme::Theme;
@@ -38,7 +37,6 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
         Constraint::Length(height),
         Constraint::Fill(1),
     ])
-    .flex(Flex::Center)
     .split(area);
 
     let horizontal = Layout::horizontal([
@@ -46,7 +44,6 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
         Constraint::Percentage(percent_x),
         Constraint::Percentage((100 - percent_x) / 2),
     ])
-    .flex(Flex::Center)
     .split(vertical[1]);
 
     horizontal[1]
@@ -73,20 +70,32 @@ fn draw(frame: &mut Frame, app: &App) {
 }
 
 fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
-    let area = centered_rect(65, 4, frame.area());
+    let area = centered_rect(65, 7, frame.area());
     let diane_theme = Theme::default();
 
     frame.render_widget(Clear, area);
     frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
 
-    let inner = area.inner(Margin::new(2, 0));
-    let rows = Layout::vertical([Constraint::Length(1), Constraint::Length(3)]).split(inner);
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(diane_theme.border));
+    let inner = block.inner(area);
+
+    frame.render_widget(block, area);
+
+    let inner_margin = inner.inner(Margin::new(2, 0));
+    let rows = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Min(0),
+    ])
+    .split(inner_margin);
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "diane:",
+            "DIANE:",
             Style::new()
-                .fg(diane_theme.title)
+                .fg(diane_theme.section_title)
                 .add_modifier(Modifier::BOLD),
         ))),
         rows[0],
@@ -94,30 +103,43 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.render_widget(
         Paragraph::new(
             Line::from(Span::styled(
-                "esc cancels | enter files",
-                Style::new().fg(diane_theme.text),
+                "esc to cancel",
+                Style::new().fg(diane_theme.info_text),
             ))
             .right_aligned(),
         ),
         rows[0],
     );
-
-    let block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(diane_theme.border));
-
-    let inner = block.inner(rows[1]);
-    frame.render_widget(block, rows[1]);
-
     frame.render_widget(
-        Paragraph::new(Line::from(vec![
-            Span::styled(" > ", Style::new().fg(diane_theme.border)),
-            Span::styled(text, Style::new().fg(diane_theme.text)),
-        ])),
-        inner,
+        Block::new()
+            .borders(Borders::BOTTOM)
+            .border_type(BorderType::Thick)
+            .border_style(Style::new().fg(diane_theme.spacer)),
+        Rect {
+            x: inner.x,
+            width: inner.width,
+            height: 1,
+            ..rows[1]
+        },
     );
 
-    frame.set_cursor_position(Position::new(inner.x + 3 + character_index, inner.y));
+    let [input] = Layout::vertical([Constraint::Length(1)])
+        .flex(Flex::Center)
+        .areas(rows[2]);
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                " > ",
+                Style::new()
+                    .fg(diane_theme.hint_text)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(text, Style::new().fg(diane_theme.input_text)),
+        ])),
+        input,
+    );
+
+    frame.set_cursor_position(Position::new(input.x + 3 + character_index, input.y));
 }
 
 fn handle_key(app: &mut App, key: KeyEvent) -> bool {

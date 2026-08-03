@@ -1,4 +1,3 @@
-use crossterm::terminal;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -17,14 +16,26 @@ pub const GRAY_1C141A: Color = Color::Rgb(0x1c, 0x14, 0x1a);
 pub const GRAY_231A20: Color = Color::Rgb(0x23, 0x1a, 0x20);
 pub const GRAY_DDD0D6: Color = Color::Rgb(0xdd, 0xd0, 0xd6);
 
-const EDGE_ROW_CHAR: char = '─';
-const TOP_LEFT_CORNER_CHAR: char = '┌';
-const TOP_RIGHT_CORNER_CHAR: char = '┐';
-const BOTTOM_LEFT_CORNER_CHAR: char = '└';
-const BOTTOM_RIGHT_CORNER_CHAR: char = '┘';
-const EDGE_COLLUMN_CHAR: char = '│';
 const FILL_CHAR: char = '•';
 const NEGATIVE_CHAR: char = ' ';
+
+pub struct Theme {
+    pub border: Color,
+    pub splash_bg: Color,
+    pub text: Color,
+    pub title: Color,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self {
+            border: RED_C4184F,
+            splash_bg: GRAY_1C141A,
+            text: GRAY_DDD0D6,
+            title: RED_F53D8F,
+        }
+    }
+}
 
 pub struct BackgroundArt {
     pub amp: isize,
@@ -72,24 +83,15 @@ impl Widget for BackgroundArt {
     {
         let cols = area.width;
         let rows = area.height;
-        let last_col = cols.saturating_sub(1);
-        let last_row = rows.saturating_sub(1);
 
         for y in 0..rows {
             for x in 0..cols {
-                let ch = match (x, y) {
-                    (0, 0) => TOP_LEFT_CORNER_CHAR,
-                    (x, 0) if x == last_col => TOP_RIGHT_CORNER_CHAR,
-                    (0, y) if y == last_row => BOTTOM_LEFT_CORNER_CHAR,
-                    (x, y) if x == last_col && y == last_row => BOTTOM_RIGHT_CORNER_CHAR,
-                    (x, _) if x == 0 || x == last_col => EDGE_COLLUMN_CHAR,
-                    (_, y) if y == 0 || y == last_row => EDGE_ROW_CHAR,
-                    _ => self.at(x as usize, y as usize),
-                };
+                let ch = self.at(x as usize, y as usize);
                 if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
                     cell.set_char(ch).set_style(
                         Style::new()
                             .fg(RED_9B1239)
+                            .bg(GRAY_1C141A)
                             .add_modifier(Modifier::DIM)
                             .add_modifier(Modifier::BOLD),
                     );

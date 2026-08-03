@@ -3,13 +3,12 @@ use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::{Constraint, Flex, Layout, Margin, Position, Rect},
-    macros::row,
-    style::{Modifier, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph},
+    style::{Modifier, Style, Stylize},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Clear, Paragraph},
 };
 
-use crate::theme;
+use crate::theme::Theme;
 use crate::{
     app::{App, Mode},
     theme::BackgroundArt,
@@ -75,18 +74,19 @@ fn draw(frame: &mut Frame, app: &App) {
 
 fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     let area = centered_rect(65, 4, frame.area());
+    let diane_theme = Theme::default();
 
     frame.render_widget(Clear, area);
+    frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
 
     let inner = area.inner(Margin::new(2, 0));
-
     let rows = Layout::vertical([Constraint::Length(1), Constraint::Length(3)]).split(inner);
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "diane:",
             Style::new()
-                .fg(theme::RED_F53D8F)
+                .fg(diane_theme.title)
                 .add_modifier(Modifier::BOLD),
         ))),
         rows[0],
@@ -95,7 +95,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Paragraph::new(
             Line::from(Span::styled(
                 "esc cancels | enter files",
-                Style::new().fg(theme::GRAY_DDD0D6),
+                Style::new().fg(diane_theme.text),
             ))
             .right_aligned(),
         ),
@@ -104,16 +104,15 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
 
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(theme::RED_C4184F));
+        .border_style(Style::new().fg(diane_theme.border));
 
     let inner = block.inner(rows[1]);
-    frame.render_widget(Clear, rows[1]);
     frame.render_widget(block, rows[1]);
 
     frame.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled(" > ", Style::new().fg(theme::RED_C4184F)),
-            Span::styled(text, Style::new().fg(theme::GRAY_DDD0D6)),
+            Span::styled(" > ", Style::new().fg(diane_theme.border)),
+            Span::styled(text, Style::new().fg(diane_theme.text)),
         ])),
         inner,
     );

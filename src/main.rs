@@ -25,7 +25,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         None => {
             if input.capture {
+                app.pane = input.entry_mode();
+
                 let mut terminal = ratatui::init();
+
                 run(&mut terminal, &mut app)?;
                 ratatui::restore();
             } else {

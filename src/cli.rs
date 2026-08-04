@@ -1,5 +1,7 @@
 use clap::Parser;
 
+use crate::app::{JournalMode, Pane};
+
 #[derive(Parser)]
 #[command(name = "diane")]
 #[command(about = "Note taking app")]
@@ -18,6 +20,19 @@ fn validade_text(s: &str) -> Result<String, String> {
         return Err("The note cannot be empty.".to_string());
     }
     Ok(s.to_string())
+}
+
+impl Cli {
+    pub fn entry_mode(&self) -> Pane {
+        if self.capture {
+            Pane::Capture {
+                text: String::new(),
+                character_index: 0,
+            }
+        } else {
+            Pane::Journal(JournalMode::Browsing)
+        }
+    }
 }
 
 #[cfg(test)]

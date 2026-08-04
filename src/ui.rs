@@ -8,22 +8,16 @@ use ratatui::{
 };
 
 use crate::{
-    app::{Action, App, Mode, update},
+    app::{Action, App, Pane, update},
     theme::{BackgroundArt, Theme},
 };
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
-    // TODO: This ill only work or capturing now.
-    app.mode = Mode::Capturing {
-        text: String::new(),
-        character_index: 0,
-    };
-
     loop {
         terminal.draw(|frame| draw(frame, app))?;
         if let Event::Key(key) = event::read()?
             && key.kind == KeyEventKind::Press
-            && let Some(action) = to_action(key)
+            && let Some(action) = app.to_action(key)
         {
             let needs_flush = update(app, action);
             if needs_flush {
@@ -56,10 +50,10 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
 }
 
 fn draw(frame: &mut Frame, app: &App) {
-    if let Mode::Capturing {
+    if let Pane::Capture {
         text,
         character_index,
-    } = &app.mode
+    } = &app.pane
     {
         frame.render_widget(
             BackgroundArt {
@@ -148,7 +142,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.set_cursor_position(Position::new(input.x + 3 + character_index, input.y));
 }
 
-fn to_action(key: KeyEvent) -> Option<Action> {
+pub fn popup_capture_action(key: KeyEvent) -> Option<Action> {
     match key.code {
         KeyCode::Char(c) => Some(Action::InsertChar(c)),
         KeyCode::Backspace => Some(Action::Backspace),

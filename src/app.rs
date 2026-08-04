@@ -1,15 +1,10 @@
 use chrono::Local;
+use crossterm::event::KeyEvent;
 
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
-
-// TODO: Rethink Names here
-// pub enum Pane {
-//     PopUp,
-//     Journal,
-//     Archive,
-// }
+use crate::ui::popup_capture_action;
 
 // NOTE: Not sure if this should stay
 // pub enum CurrentlyEditing {
@@ -17,17 +12,19 @@ use crate::stream::Vault;
 //     ArchiveEntryTitle,
 // }
 
-pub enum Screen {
-    Journal,
-    Archive,
+pub enum Pane {
+    Archive(ArchiveMode),
+    Journal(JournalMode),
+    Capture { text: String, character_index: u16 },
 }
 
-pub enum Mode {
+pub enum JournalMode {
     Browsing,
-    Capturing {
-        text: String,
-        character_index: u16,
-    },
+    Capturing { text: String, character_index: u16 },
+}
+
+pub enum ArchiveMode {
+    Browsing,
     EditingPair {
         key: String,
         value: String,
@@ -50,10 +47,10 @@ pub enum Action {
 pub fn update(app: &mut App, action: Action) -> bool {
     match action {
         Action::InsertChar(c) => {
-            if let Mode::Capturing {
+            if let Pane::Capture {
                 text,
                 character_index,
-            } = &mut app.mode
+            } = &mut app.pane
             {
                 text.push(c);
                 *character_index += 1;
@@ -61,10 +58,10 @@ pub fn update(app: &mut App, action: Action) -> bool {
             false
         }
         Action::Backspace => {
-            if let Mode::Capturing {
+            if let Pane::Capture {
                 text,
                 character_index,
-            } = &mut app.mode
+            } = &mut app.pane
             {
                 text.pop();
                 *character_index = character_index.saturating_sub(1);
@@ -96,8 +93,7 @@ pub struct App {
     pub notes: Vec<Note>,
     pub note_cursor: usize,
 
-    pub screen: Screen,
-    pub mode: Mode,
+    pub pane: Pane,
     pub should_quit: bool,
 }
 
@@ -109,12 +105,17 @@ impl App {
             day_cursor: 0,
             notes: Vec::new(),
             note_cursor: 0,
-            screen: Screen::Journal,
-            mode: Mode::Browsing,
+            pane: Pane::Journal(JournalMode::Browsing),
             should_quit: false,
         }
     }
 
+    pub fn to_action(&self, key: KeyEvent) -> Option<Action> {
+        match &self.pane {
+            Pane::Capture { .. } => popup_capture_action(key),
+            _ => todo!(),
+        }
+    }
     pub fn flush_journal(&mut self) -> std::io::Result<()> {
         let index = self.today_index();
         self.vault
@@ -173,20 +174,18 @@ impl App {
     }
 
     pub fn commit_capture(&mut self) {
-        let old = std::mem::replace(&mut self.mode, Mode::Browsing);
-
-        let Mode::Capturing { text, .. } = old else {
+        let Pane::Capture { text, .. } = &self.pane else {
             return;
         };
 
-        let text = text.trim();
+        let text = text.trim().to_string();
         if text.is_empty() {
             return;
         }
 
         let record = Record {
             at: Local::now().time(),
-            text: text.to_string(),
+            text,
         };
 
         self.today_mut().records.push(record);

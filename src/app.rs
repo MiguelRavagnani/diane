@@ -160,6 +160,7 @@ impl App {
         self.vault.save_archive_note(note)
     }
 
+    #[allow(dead_code)]
     fn capture_oneshot(&mut self, text: &str) -> std::io::Result<()> {
         let text = text.trim();
         if text.is_empty() {

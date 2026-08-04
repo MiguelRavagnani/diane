@@ -5,17 +5,17 @@ use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
 
 // TODO: Rethink Names here
-pub enum Pane {
-    PopUp,
-    Journal,
-    Archive,
-}
+// pub enum Pane {
+//     PopUp,
+//     Journal,
+//     Archive,
+// }
 
 // NOTE: Not sure if this should stay
-pub enum CurrentlyEditing {
-    ArchiveEntryBody,
-    ArchiveEntryTitle,
-}
+// pub enum CurrentlyEditing {
+//     ArchiveEntryBody,
+//     ArchiveEntryTitle,
+// }
 
 pub enum Screen {
     Journal,
@@ -38,6 +38,49 @@ pub enum Mode {
 pub enum Field {
     Key,
     Value,
+}
+
+pub enum Action {
+    InsertChar(char),
+    Backspace,
+    Cancel,
+    CommitCapture,
+}
+
+pub fn update(app: &mut App, action: Action) -> bool {
+    match action {
+        Action::InsertChar(c) => {
+            if let Mode::Capturing {
+                text,
+                character_index,
+            } = &mut app.mode
+            {
+                text.push(c);
+                *character_index += 1;
+            }
+            false
+        }
+        Action::Backspace => {
+            if let Mode::Capturing {
+                text,
+                character_index,
+            } = &mut app.mode
+            {
+                text.pop();
+                *character_index = character_index.saturating_sub(1);
+            }
+            false
+        }
+        Action::Cancel => {
+            app.should_quit = true;
+            false
+        }
+        Action::CommitCapture => {
+            app.commit_capture();
+            app.should_quit = true;
+            true
+        }
+    }
 }
 
 pub struct App {

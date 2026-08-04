@@ -46,7 +46,7 @@ impl Default for Theme {
         Self {
             border: RED_9B1239,
             spacer: GRAY_61505A,
-            splash_bg: GRAY_231A20,
+            splash_bg: GRAY_1C141A,
             splash_fg: RED_6E0B22,
             input_text: GRAY_DDD0D6,
             info_text: GRAY_907E88,

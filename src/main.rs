@@ -20,14 +20,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = Cli::parse();
     match input.input_text {
         Some(text) => {
-            println!("CLI mode: {}", text);
             app.push_record(text);
-            _ = app.flush_journal()?;
+            app.flush_journal()?;
         }
         None => {
             if input.capture {
                 let mut terminal = ratatui::init();
-                let _result = run(&mut terminal, &mut app);
+                run(&mut terminal, &mut app)?;
                 ratatui::restore();
             } else {
                 println!("Here we run TUI!");

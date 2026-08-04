@@ -7,10 +7,9 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
 };
 
-use crate::theme::Theme;
 use crate::{
-    app::{App, Mode},
-    theme::BackgroundArt,
+    app::{Action, App, Mode, update},
+    theme::{BackgroundArt, Theme},
 };
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
@@ -19,10 +18,17 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::R
         text: String::new(),
         character_index: 0,
     };
+
     loop {
         terminal.draw(|frame| draw(frame, app))?;
-        if let Event::Key(key) = event::read()? {
-            handle_key(app, key);
+        if let Event::Key(key) = event::read()?
+            && key.kind == KeyEventKind::Press
+            && let Some(action) = to_action(key)
+        {
+            let needs_flush = update(app, action);
+            if needs_flush {
+                app.flush_journal()?;
+            }
         }
         if app.should_quit {
             break;
@@ -142,46 +148,12 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.set_cursor_position(Position::new(input.x + 3 + character_index, input.y));
 }
 
-fn handle_key(app: &mut App, key: KeyEvent) -> bool {
-    if key.kind != KeyEventKind::Press {
-        return false;
-    }
-
-    match &mut app.mode {
-        Mode::Capturing { .. } => {
-            handle_capturing(app, key);
-            false
-        }
-        _ => todo!(),
-    }
-}
-
-fn handle_capturing(app: &mut App, key: KeyEvent) {
-    let Mode::Capturing {
-        text,
-        character_index,
-    } = &mut app.mode
-    else {
-        return;
-    };
-
+fn to_action(key: KeyEvent) -> Option<Action> {
     match key.code {
-        KeyCode::Char(c) => {
-            text.push(c);
-            *character_index += 1;
-        }
-        KeyCode::Backspace => {
-            text.pop();
-            *character_index = character_index.saturating_sub(1);
-        }
-        KeyCode::Esc => {
-            app.should_quit = true;
-        }
-        KeyCode::Enter => {
-            app.commit_capture();
-            app.flush_journal();
-            app.should_quit = true;
-        }
-        _ => {}
+        KeyCode::Char(c) => Some(Action::InsertChar(c)),
+        KeyCode::Backspace => Some(Action::Backspace),
+        KeyCode::Esc => Some(Action::Cancel),
+        KeyCode::Enter => Some(Action::CommitCapture),
+        _ => None,
     }
 }

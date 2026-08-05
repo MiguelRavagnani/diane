@@ -46,28 +46,34 @@ pub enum Action {
 
 pub fn update(app: &mut App, action: Action) -> bool {
     match action {
-        Action::InsertChar(c) => {
-            if let Pane::Capture {
-                text,
-                character_index,
-            } = &mut app.pane
-            {
-                text.push(c);
-                *character_index += 1;
+        Action::InsertChar(c) => match &mut app.pane {
+            Some(pane) => {
+                if let Pane::Capture {
+                    text,
+                    character_index,
+                } = pane
+                {
+                    text.push(c);
+                    *character_index += 1;
+                }
+                false
             }
-            false
-        }
-        Action::Backspace => {
-            if let Pane::Capture {
-                text,
-                character_index,
-            } = &mut app.pane
-            {
-                text.pop();
-                *character_index = character_index.saturating_sub(1);
+            None => false,
+        },
+        Action::Backspace => match &mut app.pane {
+            Some(pane) => {
+                if let Pane::Capture {
+                    text,
+                    character_index,
+                } = pane
+                {
+                    text.pop();
+                    *character_index = character_index.saturating_sub(1);
+                }
+                false
             }
-            false
-        }
+            None => false,
+        },
         Action::Cancel => {
             app.should_quit = true;
             false
@@ -93,7 +99,11 @@ pub struct App {
     pub notes: Vec<Note>,
     pub note_cursor: usize,
 
-    pub pane: Pane,
+    // NOTE: So I decided to make this Option for now. Currently,
+    // this does nothing more than making me rewrite a bunch of
+    // stuff for case matching, BUT I do think this will be usefull
+    // soon. Maybe detach the CLI's text input matching for good...
+    pub pane: Option<Pane>,
     pub should_quit: bool,
 }
 
@@ -105,17 +115,19 @@ impl App {
             day_cursor: 0,
             notes: Vec::new(),
             note_cursor: 0,
-            pane: Pane::Journal(JournalMode::Browsing),
+            pane: Some(Pane::Journal(JournalMode::Browsing)),
             should_quit: false,
         }
     }
 
     pub fn to_action(&self, key: KeyEvent) -> Option<Action> {
-        match &self.pane {
+        self.pane.as_ref().and_then(|pane| match pane {
             Pane::Capture { .. } => popup_capture_action(key),
-            _ => todo!(),
-        }
+            Pane::Archive(_) => todo!("Archive to_action"),
+            Pane::Journal(_) => todo!("Journal to_action"),
+        })
     }
+
     pub fn flush_journal(&mut self) -> std::io::Result<()> {
         let index = self.today_index();
         self.vault
@@ -175,7 +187,7 @@ impl App {
     }
 
     pub fn commit_capture(&mut self) {
-        let Pane::Capture { text, .. } = &self.pane else {
+        let Some(Pane::Capture { text, .. }) = &self.pane else {
             return;
         };
 

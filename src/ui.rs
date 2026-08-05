@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
-    loop {
+    while app.pane.is_some() {
         terminal.draw(|frame| draw(frame, app))?;
         if let Event::Key(key) = event::read()?
             && key.kind == KeyEventKind::Press
@@ -50,22 +50,26 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
 }
 
 fn draw(frame: &mut Frame, app: &App) {
-    if let Pane::Capture {
-        text,
-        character_index,
-    } = &app.pane
-    {
-        frame.render_widget(
-            BackgroundArt {
-                amp: 3,
-                slope: 2,
-                spacing: 7,
-                thickness: 4,
-                ..Default::default()
-            },
-            frame.area(),
-        );
-        draw_capture_poopup(frame, text, character_index);
+    match &app.pane {
+        Some(Pane::Capture {
+            text,
+            character_index,
+        }) => {
+            frame.render_widget(
+                BackgroundArt {
+                    amp: 3,
+                    slope: 2,
+                    spacing: 7,
+                    thickness: 4,
+                    ..Default::default()
+                },
+                frame.area(),
+            );
+            draw_capture_poopup(frame, text, character_index);
+        }
+        Some(Pane::Archive(_)) => todo!("archive view"),
+        Some(Pane::Journal(_)) => todo!("journal view"),
+        None => {}
     }
 }
 

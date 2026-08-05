@@ -23,7 +23,7 @@ fn validade_text(s: &str) -> Result<String, String> {
 }
 
 impl Cli {
-    pub fn entry_mode(&self) -> Pane {
+    pub fn initial_pane(&self) -> Pane {
         if self.capture {
             Pane::Capture {
                 text: String::new(),

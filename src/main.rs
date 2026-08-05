@@ -18,24 +18,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new(&cfg);
 
     let input = Cli::parse();
+
     match input.input_text {
         Some(text) => {
             app.push_record(text);
             app.flush_journal()?;
         }
         None => {
-            if input.capture {
-                app.pane = input.entry_mode();
-
-                let mut terminal = ratatui::init();
-
-                run(&mut terminal, &mut app)?;
-                ratatui::restore();
-            } else {
-                println!("Here we run TUI!");
-            }
+            app.pane = Some(input.initial_pane());
+            let mut terminal = ratatui::init();
+            run(&mut terminal, &mut app)?;
+            ratatui::restore();
         }
     }
+
     Ok(())
 }
 

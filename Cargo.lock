@@ -459,6 +459,7 @@ dependencies = [
  "dirs",
  "envy",
  "ratatui",
+ "regex",
  "serde",
  "tempfile",
 ]

@@ -1,4 +1,5 @@
 use chrono::{Local, NaiveDate, NaiveTime};
+use regex::Regex;
 
 pub struct Note {
     pub slug: String,
@@ -64,6 +65,30 @@ fn slugify(title: &str) -> String {
 pub struct Record {
     pub at: NaiveTime,
     pub text: String,
+}
+
+const RECORD_REGEX: &str = r"^-\s*(?P<time>\d{2}:\d{2})\s*(?P<content>.*)$";
+
+impl TryFrom<String> for Record {
+    // TODO: Need for an aggregated error type strategy is growing
+    type Error = &'static str;
+
+    fn try_from(string: String) -> Result<Self, Self::Error> {
+        let Ok(re) = Regex::new(RECORD_REGEX) else {
+            return Err("Invalid record regex");
+        };
+
+        if let Some(record_caps) = re.captures(&string) {
+            let time_str = &record_caps["time"];
+            let text = record_caps["content"].trim().to_string();
+
+            if let Ok(at) = NaiveTime::parse_from_str(time_str, "%H:%M") {
+                return Ok(Record { at, text });
+            }
+        }
+
+        return Err("Unable to convert string to record");
+    }
 }
 
 pub struct Day {

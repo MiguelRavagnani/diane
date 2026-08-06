@@ -25,7 +25,7 @@ impl Vault {
         }
     }
 
-    pub fn recover_journal_records(&self) -> io::Result<Day> {
+    pub fn recover_journal_records(&self) -> io::Result<Vec<Day>> {
         // TODO: Propper error return here. might not want an error if empty
         let journal_entries = fs::read_dir(&self.journal_path)?;
         let mut days: Vec<Day> = Vec::new();
@@ -37,30 +37,24 @@ impl Vault {
             if journal_entry_path.is_file()
                 && let Some(journal_entry_filename) =
                     journal_entry_path.file_stem().and_then(|s| s.to_str())
+                && let Ok(date) = NaiveDate::parse_from_str(journal_entry_filename, "%Y-%m-%d")
             {
-                match NaiveDate::parse_from_str(journal_entry_filename, "%Y-%m-%d") {
-                    Ok(date) => {
-                        let mut records: Vec<Record> = Vec::new();
-                        let entry_records_content = File::open(&journal_entry_path)?;
-                        let reader = BufReader::new(entry_records_content);
+                let mut records: Vec<Record> = Vec::new();
+                let entry_records_content = File::open(&journal_entry_path)?;
+                let reader = BufReader::new(entry_records_content);
 
-                        for entry_record_row in reader.lines() {
-                            let entry_record_row = entry_record_row?;
-                            if let Ok(record) = Record::try_from(entry_record_row) {
-                                records.push(record);
-                            }
-                        }
-
-                        days.push(Day { date, records })
+                for entry_record_row in reader.lines() {
+                    let entry_record_row = entry_record_row?;
+                    if let Ok(record) = Record::try_from(entry_record_row) {
+                        records.push(record);
                     }
-                    Err(_) => todo!(),
                 }
+
+                days.push(Day { date, records })
             }
         }
 
-        let reference_date = self.reference_day.format("%Y-%m-%d").to_string();
-        let path = Path::new(&self.journal_path).join(format!("{}.md", reference_date));
-        todo!()
+        Ok(days)
     }
 
     pub fn append_journal_records(&self, records: &mut Vec<Record>) -> io::Result<()> {

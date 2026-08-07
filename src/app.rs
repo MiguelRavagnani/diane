@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::ops::Bound::{Excluded, Unbounded};
 
 use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
@@ -6,7 +7,7 @@ use crossterm::event::KeyEvent;
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
-use crate::ui::capture_action;
+use crate::ui::{capture_action, journal_browsing_action};
 
 // NOTE: Not sure if this should stay
 // pub enum CurrentlyEditing {
@@ -41,6 +42,8 @@ pub enum Field {
 
 pub enum Action {
     InsertChar(char),
+    NextDay,
+    PreviousDay,
     Backspace,
     Cancel,
     CommitCapture,
@@ -48,6 +51,22 @@ pub enum Action {
 
 pub fn update(app: &mut App, action: Action) -> bool {
     match action {
+        Action::PreviousDay => {
+            if let Some(Pane::Journal(JournalMode::Browsing { selected })) = &mut app.pane
+                && let Some((&date, _)) = app.days.range(..*selected).next_back()
+            {
+                *selected = date;
+            }
+            false
+        }
+        Action::NextDay => {
+            if let Some(Pane::Journal(JournalMode::Browsing { selected })) = &mut app.pane
+                && let Some((&date, _)) = app.days.range((Excluded(*selected), Unbounded)).next()
+            {
+                *selected = date;
+            }
+            false
+        }
         Action::InsertChar(c) => match &mut app.pane {
             Some(pane) => {
                 if let Pane::Capture {
@@ -92,10 +111,6 @@ pub struct App {
     pub vault: Vault,
 
     pub days: BTreeMap<NaiveDate, Day>,
-    // NOTE: This will become important now. Ill use this to
-    // make sure, when the days are loaded, that this tells me
-    // what days are new, which need to be fulshed
-    pub day_cursor: usize,
 
     pub notes: Vec<Note>,
     pub note_cursor: usize,
@@ -113,7 +128,6 @@ impl App {
         Self {
             vault: Vault::new(config),
             days: BTreeMap::new(),
-            day_cursor: 0,
             notes: Vec::new(),
             note_cursor: 0,
             pane: Some(Pane::Journal(JournalMode::Browsing {
@@ -127,7 +141,8 @@ impl App {
         self.pane.as_ref().and_then(|pane| match pane {
             Pane::Capture { .. } => capture_action(key),
             Pane::Archive(_) => todo!("Archive to_action"),
-            Pane::Journal(_) => todo!("Journal to_action"),
+            Pane::Journal(JournalMode::Capturing { .. }) => todo!(),
+            Pane::Journal(JournalMode::Browsing { .. }) => journal_browsing_action(key),
         })
     }
 

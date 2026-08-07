@@ -342,3 +342,12 @@ pub fn capture_action(key: KeyEvent) -> Option<Action> {
         _ => None,
     }
 }
+
+pub fn journal_browsing_action(key: KeyEvent) -> Option<Action> {
+    match key.code {
+        KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
+        KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
+        KeyCode::Esc => Some(Action::Cancel),
+        _ => None,
+    }
+}

@@ -8,7 +8,7 @@ use ratatui::{
     style::{Modifier, Style, Stylize},
     symbols::merge::MergeStrategy,
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph},
+    widgets::{Block, BorderType, Borders, Clear, Fill, Paragraph},
 };
 
 use crate::{
@@ -80,37 +80,33 @@ fn draw(frame: &mut Frame, app: &App) {
             text,
             character_index,
         }) => {
-            frame.render_widget(
-                BackgroundArt {
-                    amp: 3,
-                    slope: 2,
-                    spacing: 7,
-                    thickness: 4,
-                    ..Default::default()
-                },
-                frame.area(),
-            );
+            background(frame);
             draw_capture_poopup(frame, text, character_index);
         }
         // TODO: This Archive and Journal will sahre a bunch of visual code for now.
         // Once I get this working, Ill clean it up, promisse to myself
         Some(Pane::Archive(_)) => todo!("archive view"),
         Some(Pane::Journal(JournalMode::Browsing)) => {
-            frame.render_widget(
-                BackgroundArt {
-                    amp: 3,
-                    slope: 2,
-                    spacing: 7,
-                    thickness: 4,
-                    ..Default::default()
-                },
-                frame.area(),
-            );
+            background(frame);
             draw_journal(frame, &app.days);
         }
         Some(Pane::Journal(JournalMode::Capturing { .. })) => todo!("capturing journal view"),
         None => {}
     }
+}
+
+fn background(frame: &mut Frame) {
+    let area = frame.area();
+    frame.render_widget(
+        BackgroundArt {
+            amp: 3,
+            slope: 2,
+            spacing: 7,
+            thickness: 4,
+            ..Default::default()
+        },
+        area,
+    );
 }
 
 fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
@@ -127,13 +123,16 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
 
     // Main block. Will hold the capture popup
-    let main_block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(diane_theme.border));
+    let [gutter, main_block] =
+        Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).areas(area);
 
-    let main_block_inner = main_block.inner(area).inner(Margin::new(2, 0));
+    let main_block_inner = main_block.inner(Margin::new(2, 1));
 
-    frame.render_widget(main_block, area);
+    frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
+    frame.render_widget(
+        Fill::new("▌").style(Style::new().fg(diane_theme.border)),
+        gutter,
+    );
 
     // here, the division is:
     //  1 - Header
@@ -203,14 +202,16 @@ fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>) {
     // archive window
     frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
 
-    let main_block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(diane_theme.border));
-    let main_block_inner = main_block.inner(area);
+    let [gutter, main_block] =
+        Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).areas(area);
 
-    frame.render_widget(main_block, area);
+    let main_block_inner_margin = main_block.inner(Margin::new(2, 1));
 
-    let main_block_inner_margin = main_block_inner.inner(Margin::new(2, 0));
+    frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
+    frame.render_widget(
+        Fill::new("▌").style(Style::new().fg(diane_theme.border)),
+        gutter,
+    );
 
     // Area for:
     //   1 - Header

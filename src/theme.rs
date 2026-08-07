@@ -45,7 +45,7 @@ impl Default for Theme {
     fn default() -> Self {
         Self {
             border: RED_9B1239,
-            spacer: GRAY_61505A,
+            spacer: GRAY_402836,
             splash_bg: GRAY_1C141A,
             splash_fg: RED_6E0B22,
             input_text: GRAY_DDD0D6,
@@ -112,8 +112,6 @@ impl Widget for BackgroundArt {
                     cell.set_char(ch).set_style(
                         Style::new()
                             .fg(self.theme.splash_fg)
-                            .bg(self.theme.splash_bg)
-                            .add_modifier(Modifier::DIM)
                             .add_modifier(Modifier::BOLD),
                     );
                 }

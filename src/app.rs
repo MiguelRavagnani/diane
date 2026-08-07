@@ -6,7 +6,7 @@ use crossterm::event::KeyEvent;
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
-use crate::ui::popup_capture_action;
+use crate::ui::capture_action;
 
 // NOTE: Not sure if this should stay
 // pub enum CurrentlyEditing {
@@ -21,7 +21,7 @@ pub enum Pane {
 }
 
 pub enum JournalMode {
-    Browsing,
+    Browsing { selected: NaiveDate },
     Capturing { text: String, character_index: u16 },
 }
 
@@ -116,14 +116,16 @@ impl App {
             day_cursor: 0,
             notes: Vec::new(),
             note_cursor: 0,
-            pane: Some(Pane::Journal(JournalMode::Browsing)),
+            pane: Some(Pane::Journal(JournalMode::Browsing {
+                selected: Local::now().date_naive(),
+            })),
             should_quit: false,
         }
     }
 
     pub fn to_action(&self, key: KeyEvent) -> Option<Action> {
         self.pane.as_ref().and_then(|pane| match pane {
-            Pane::Capture { .. } => popup_capture_action(key),
+            Pane::Capture { .. } => capture_action(key),
             Pane::Archive(_) => todo!("Archive to_action"),
             Pane::Journal(_) => todo!("Journal to_action"),
         })

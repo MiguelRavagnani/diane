@@ -32,6 +32,8 @@ const NEGATIVE_CHAR: char = ' ';
 
 pub struct Theme {
     pub border: Color,
+    pub selected_bg: Color,
+    pub selected_fg: Color,
     pub spacer: Color,
     pub splash_bg: Color,
     pub splash_fg: Color,
@@ -45,6 +47,8 @@ impl Default for Theme {
     fn default() -> Self {
         Self {
             border: RED_9B1239,
+            selected_bg: RED_DE2467,
+            selected_fg: GRAY_1C141A,
             spacer: GRAY_402836,
             splash_bg: GRAY_1C141A,
             splash_fg: RED_6E0B22,

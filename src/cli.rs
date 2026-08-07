@@ -1,3 +1,4 @@
+use chrono::Local;
 use clap::Parser;
 
 use crate::app::{JournalMode, Pane};
@@ -30,7 +31,9 @@ impl Cli {
                 character_index: 0,
             }
         } else {
-            Pane::Journal(JournalMode::Browsing)
+            Pane::Journal(JournalMode::Browsing {
+                selected: Local::now().date_naive(),
+            })
         }
     }
 }

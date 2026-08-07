@@ -86,9 +86,9 @@ fn draw(frame: &mut Frame, app: &App) {
         // TODO: This Archive and Journal will sahre a bunch of visual code for now.
         // Once I get this working, Ill clean it up, promisse to myself
         Some(Pane::Archive(_)) => todo!("archive view"),
-        Some(Pane::Journal(JournalMode::Browsing)) => {
+        Some(Pane::Journal(JournalMode::Browsing { selected })) => {
             background(frame);
-            draw_journal(frame, &app.days);
+            draw_journal(frame, &app.days, selected);
         }
         Some(Pane::Journal(JournalMode::Capturing { .. })) => todo!("capturing journal view"),
         None => {}
@@ -149,6 +149,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.render_widget(
         Block::new()
             .borders(Borders::BOTTOM)
+            .border_type(BorderType::Thick)
             .border_style(Style::new().fg(diane_theme.spacer)),
         main_block_inner_rows[1],
     );
@@ -193,7 +194,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.set_cursor_position(Position::new(input.x + 3 + character_index, input.y));
 }
 
-fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>) {
+fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>, selected: &NaiveDate) {
     let area = proportinal_centered_rect(90, 90, frame.area());
     let diane_theme = Theme::default();
 
@@ -249,24 +250,27 @@ fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>) {
             .spacing(Spacing::Overlap(1))
             .areas(main_block_rows[1]);
 
-    let [_, workspace_sidepane_title, workspace_sidepane_content] = Layout::vertical([
+    let workspace_sidepane_block = Block::bordered()
+        .borders(Borders::TOP | Borders::BOTTOM | Borders::RIGHT)
+        .border_type(BorderType::Thick)
+        .border_style(Style::new().fg(diane_theme.spacer))
+        .merge_borders(MergeStrategy::Exact);
+
+    let workspace_sidepane_block_inner = workspace_sidepane_block.inner(workspace_sidepane);
+
+    frame.render_widget(workspace_sidepane_block, workspace_sidepane);
+
+    let [workspace_sidepane_title, _, workspace_sidepane_content] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Fill(1),
     ])
-    .areas(workspace_sidepane);
-
-    frame.render_widget(
-        Block::bordered()
-            .borders(Borders::TOP | Borders::BOTTOM | Borders::RIGHT)
-            .border_style(Style::new().fg(diane_theme.spacer))
-            .merge_borders(MergeStrategy::Exact),
-        workspace_sidepane,
-    );
+    .areas(workspace_sidepane_block_inner);
 
     frame.render_widget(
         Block::bordered()
             .borders(Borders::TOP | Borders::BOTTOM | Borders::LEFT)
+            .border_type(BorderType::Thick)
             .border_style(Style::new().fg(diane_theme.spacer))
             .merge_borders(MergeStrategy::Exact),
         workspace_body,
@@ -275,7 +279,9 @@ fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>) {
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Journal",
-            Style::new().fg(diane_theme.section_title),
+            Style::new()
+                .fg(diane_theme.info_text)
+                .add_modifier(Modifier::BOLD),
         ))),
         workspace_sidepane_title,
     );
@@ -286,18 +292,29 @@ fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>) {
         .map(|(date, record)| (date.to_string(), record.records.len().to_string()))
         .collect();
 
-    let w = workspace_sidepane_content.width.saturating_sub(2) as usize;
-
     let daily_paragraph = Paragraph::new(
         daily_records
             .into_iter()
             .map(|(date, count)| {
-                let pad = w.saturating_sub(date.len() + count.len());
+                let style = if date == selected.to_string() {
+                    Style::new()
+                        .bg(diane_theme.selected_bg)
+                        .fg(diane_theme.selected_fg)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::new().fg(diane_theme.info_text)
+                };
+                let w = workspace_sidepane_content.width as usize;
+                let pad = w.saturating_sub(date.len() + count.len() + 3);
+
                 Line::from(vec![
-                    Span::styled(date, Style::new().fg(diane_theme.info_text)),
+                    Span::raw(" "),
+                    Span::styled(date, style),
                     Span::raw(" ".repeat(pad)),
-                    Span::styled(count, Style::new().fg(diane_theme.info_text)),
+                    Span::styled(count, style),
+                    Span::raw(" "),
                 ])
+                .style(style)
             })
             .collect::<Vec<_>>(),
     );
@@ -316,7 +333,7 @@ fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>) {
     );
 }
 
-pub fn popup_capture_action(key: KeyEvent) -> Option<Action> {
+pub fn capture_action(key: KeyEvent) -> Option<Action> {
     match key.code {
         KeyCode::Char(c) => Some(Action::InsertChar(c)),
         KeyCode::Backspace => Some(Action::Backspace),

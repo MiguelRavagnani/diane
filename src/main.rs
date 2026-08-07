@@ -25,6 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             app.flush_journal()?;
         }
         None => {
+            app.retrieve_journal()?;
             app.pane = Some(input.initial_pane());
             let mut terminal = ratatui::init();
             run(&mut terminal, &mut app)?;

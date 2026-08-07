@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+
+use chrono::NaiveDate;
 use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
@@ -10,6 +13,7 @@ use ratatui::{
 
 use crate::{
     app::{Action, App, JournalMode, Pane, update},
+    entry::Day,
     theme::{BackgroundArt, Theme},
 };
 
@@ -102,7 +106,7 @@ fn draw(frame: &mut Frame, app: &App) {
                 },
                 frame.area(),
             );
-            draw_journal(frame);
+            draw_journal(frame, &app.days);
         }
         Some(Pane::Journal(JournalMode::Capturing { .. })) => todo!("capturing journal view"),
         None => {}
@@ -190,7 +194,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.set_cursor_position(Position::new(input.x + 3 + character_index, input.y));
 }
 
-fn draw_journal(frame: &mut Frame) {
+fn draw_journal(frame: &mut Frame, days: &BTreeMap<NaiveDate, Day>) {
     let area = proportinal_centered_rect(90, 90, frame.area());
     let diane_theme = Theme::default();
 
@@ -275,21 +279,29 @@ fn draw_journal(frame: &mut Frame) {
         workspace_sidepane_title,
     );
 
-    let mock_records = ["Today", "Yesterday"];
+    let daily_records: Vec<(String, String)> = days
+        .iter()
+        .rev()
+        .map(|(date, record)| (date.to_string(), record.records.len().to_string()))
+        .collect();
 
-    let mock_paragraph = Paragraph::new(
-        mock_records
-            .iter()
-            .map(|&record| {
+    let w = workspace_sidepane_content.width.saturating_sub(2) as usize;
+
+    let daily_paragraph = Paragraph::new(
+        daily_records
+            .into_iter()
+            .map(|(date, count)| {
+                let pad = w.saturating_sub(date.len() + count.len());
                 Line::from(vec![
-                    Span::styled("- ", Style::new().fg(diane_theme.info_text)),
-                    Span::styled(record, Style::new().fg(diane_theme.info_text)),
+                    Span::styled(date, Style::new().fg(diane_theme.info_text)),
+                    Span::raw(" ".repeat(pad)),
+                    Span::styled(count, Style::new().fg(diane_theme.info_text)),
                 ])
             })
             .collect::<Vec<_>>(),
     );
 
-    frame.render_widget(mock_paragraph, workspace_sidepane_content);
+    frame.render_widget(daily_paragraph, workspace_sidepane_content);
 
     frame.render_widget(
         Paragraph::new(

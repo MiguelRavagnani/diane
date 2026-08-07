@@ -91,9 +91,10 @@ impl TryFrom<String> for Record {
     }
 }
 
+#[derive(Default)]
 pub struct Day {
-    pub date: NaiveDate,
     pub records: Vec<Record>,
+    // dirty: bool, // TODO: Selective flushing needed :)
 }
 
 #[cfg(test)]

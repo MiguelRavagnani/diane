@@ -1,4 +1,5 @@
-use chrono::{Local, NaiveDate};
+use chrono::NaiveDate;
+use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -13,7 +14,6 @@ const ARCHIVE_PATH: &str = r"archive";
 pub struct Vault {
     pub journal_path: PathBuf,
     pub archive_path: PathBuf,
-    reference_day: NaiveDate,
 }
 
 impl Vault {
@@ -21,14 +21,13 @@ impl Vault {
         Self {
             journal_path: Path::new(&config.diane_root).join(JOURNAL_PATH),
             archive_path: Path::new(&config.diane_root).join(ARCHIVE_PATH),
-            reference_day: Local::now().date_naive(),
         }
     }
 
-    pub fn recover_journal_records(&self) -> io::Result<Vec<Day>> {
+    pub fn recover_journal_records(&self) -> io::Result<BTreeMap<NaiveDate, Day>> {
         // TODO: Propper error return here. might not want an error if empty
         let journal_entries = fs::read_dir(&self.journal_path)?;
-        let mut days: Vec<Day> = Vec::new();
+        let mut days = BTreeMap::new();
 
         for journal_entry in journal_entries {
             let journal_entry = journal_entry?;
@@ -49,20 +48,23 @@ impl Vault {
                         records.push(record);
                     }
                 }
-
-                days.push(Day { date, records })
+                days.insert(date, Day { records });
             }
         }
 
         Ok(days)
     }
 
-    pub fn append_journal_records(&self, records: &mut Vec<Record>) -> io::Result<()> {
+    pub fn append_journal_records(
+        &self,
+        date: NaiveDate,
+        records: &mut Vec<Record>,
+    ) -> io::Result<()> {
         if records.is_empty() {
             return Ok(());
         }
 
-        let reference_date = self.reference_day.format("%Y-%m-%d").to_string();
+        let reference_date = date.format("%Y-%m-%d").to_string();
         let path = Path::new(&self.journal_path).join(format!("{}.md", reference_date));
 
         fs::create_dir_all(&self.journal_path)?;

@@ -1,4 +1,6 @@
-use chrono::Local;
+use std::collections::BTreeMap;
+
+use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
 
 use crate::config::Config;
@@ -89,11 +91,10 @@ pub fn update(app: &mut App, action: Action) -> bool {
 pub struct App {
     pub vault: Vault,
 
-    // NOTE: This might bite me. If we are loading from disk
-    // 365 notes for a year, for example, this sohuld be ok. But
-    // lazily loading this should be smarter. Maybe move this to
-    // BTreeMap later
-    pub days: Vec<Day>,
+    pub days: BTreeMap<NaiveDate, Day>,
+    // NOTE: This will become important now. Ill use this to
+    // make sure, when the days are loaded, that this tells me
+    // what days are new, which need to be fulshed
     pub day_cursor: usize,
 
     pub notes: Vec<Note>,
@@ -111,7 +112,7 @@ impl App {
     pub fn new(config: &Config) -> App {
         Self {
             vault: Vault::new(config),
-            days: Vec::new(),
+            days: BTreeMap::new(),
             day_cursor: 0,
             notes: Vec::new(),
             note_cursor: 0,
@@ -128,31 +129,21 @@ impl App {
         })
     }
 
-    pub fn flush_journal(&mut self) -> std::io::Result<()> {
-        let index = self.today_index();
-        self.vault
-            .append_journal_records(&mut self.days[index].records)
+    pub fn retrieve_journal(&mut self) -> std::io::Result<()> {
+        self.days = self.vault.recover_journal_records()?;
+        Ok(())
     }
 
-    fn today_index(&mut self) -> usize {
+    pub fn flush_journal(&mut self) -> std::io::Result<()> {
         let today = Local::now().date_naive();
-        match self.days.iter().position(|d| d.date == today) {
-            Some(i) => i,
-            None => {
-                self.days.push(Day {
-                    date: today,
-                    records: Vec::new(),
-                });
-                self.days.len() - 1
-            }
-        }
+        let day = self.days.entry(today).or_default();
+        self.vault.append_journal_records(today, &mut day.records)
     }
 
     // This keeps the days in check, making shure we get the days accesses and
     // modified as needed.
     pub fn today_mut(&mut self) -> &mut Day {
-        let today_index = self.today_index();
-        &mut self.days[today_index]
+        self.days.entry(Local::now().date_naive()).or_default()
     }
 
     pub fn selected_note_mut(&mut self) -> Option<&mut Note> {
@@ -170,20 +161,6 @@ impl App {
         };
         note.updated = Local::now().date_naive();
         self.vault.save_archive_note(note)
-    }
-
-    #[allow(dead_code)]
-    fn capture_oneshot(&mut self, text: &str) -> std::io::Result<()> {
-        let text = text.trim();
-        if text.is_empty() {
-            return Ok(());
-        }
-
-        self.today_mut().records.push(Record {
-            at: chrono::Local::now().time(),
-            text: text.to_string(),
-        });
-        self.flush_journal()
     }
 
     pub fn commit_capture(&mut self) {

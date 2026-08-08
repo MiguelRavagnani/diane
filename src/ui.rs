@@ -315,29 +315,47 @@ fn draw_journal(
         .map(|(date, record)| (date.to_string(), record.records.len().to_string()))
         .collect();
 
+    // Conditional formating for the slected jounral row. Changes color
+    // based on selected row, and focused pane
+    let selected_paragraph =
+        |date_matched: bool, date: String, count: String, sidepane_focused: bool| {
+            let w = workspace_sidepane_content.width as usize;
+
+            let (bg, fg) = if sidepane_focused {
+                (diane_theme.selected_bg, diane_theme.selected_fg)
+            } else {
+                (diane_theme.selected_bg_unfocused, diane_theme.info_text)
+            };
+
+            let gutter = if !sidepane_focused && date_matched {
+                Span::styled("▌", Style::new().fg(diane_theme.border))
+            } else {
+                Span::raw(" ")
+            };
+
+            let style = if date == selected.to_string() {
+                Style::new().bg(bg).fg(fg).add_modifier(Modifier::BOLD)
+            } else {
+                Style::new().fg(diane_theme.input_text)
+            };
+
+            let pad = w.saturating_sub(date.len() + count.len() + 3);
+
+            Line::from(vec![
+                gutter,
+                Span::styled(date, style),
+                Span::raw(" ".repeat(pad)),
+                Span::styled(count, style),
+                Span::raw(" "),
+            ])
+            .style(style)
+        };
+
     let daily_paragraph = Paragraph::new(
         daily_records
             .into_iter()
             .map(|(date, count)| {
-                let style = if date == selected.to_string() {
-                    Style::new()
-                        .bg(diane_theme.selected_bg)
-                        .fg(diane_theme.selected_fg)
-                        .add_modifier(Modifier::BOLD)
-                } else {
-                    Style::new().fg(diane_theme.info_text)
-                };
-                let w = workspace_sidepane_content.width as usize;
-                let pad = w.saturating_sub(date.len() + count.len() + 3);
-
-                Line::from(vec![
-                    Span::raw(" "),
-                    Span::styled(date, style),
-                    Span::raw(" ".repeat(pad)),
-                    Span::styled(count, style),
-                    Span::raw(" "),
-                ])
-                .style(style)
+                selected_paragraph(date == selected.to_string(), date, count, sidepane_focused)
             })
             .collect::<Vec<_>>(),
     );

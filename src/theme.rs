@@ -33,6 +33,7 @@ const NEGATIVE_CHAR: char = ' ';
 pub struct Theme {
     pub border: Color,
     pub selected_bg: Color,
+    pub selected_bg_unfocused: Color,
     pub selected_fg: Color,
     pub spacer: Color,
     pub splash_bg: Color,
@@ -48,6 +49,7 @@ impl Default for Theme {
         Self {
             border: RED_9B1239,
             selected_bg: RED_DE2467,
+            selected_bg_unfocused: GRAY_402836,
             selected_fg: GRAY_1C141A,
             spacer: GRAY_402836,
             splash_bg: GRAY_1C141A,

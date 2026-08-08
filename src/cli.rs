@@ -31,9 +31,10 @@ impl Cli {
                 character_index: 0,
             }
         } else {
-            Pane::Journal(JournalMode::Browsing {
+            Pane::Journal {
                 selected: Local::now().date_naive(),
-            })
+                mode: JournalMode::Browsing,
+            }
         }
     }
 }

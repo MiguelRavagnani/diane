@@ -17,12 +17,18 @@ use crate::ui::{capture_action, journal_browsing_action};
 
 pub enum Pane {
     Archive(ArchiveMode),
-    Journal(JournalMode),
-    Capture { text: String, character_index: u16 },
+    Journal {
+        selected: NaiveDate,
+        mode: JournalMode,
+    },
+    Capture {
+        text: String,
+        character_index: u16,
+    },
 }
 
 pub enum JournalMode {
-    Browsing { selected: NaiveDate },
+    Browsing,
     Capturing { text: String, character_index: u16 },
 }
 
@@ -52,7 +58,7 @@ pub enum Action {
 pub fn update(app: &mut App, action: Action) -> bool {
     match action {
         Action::PreviousDay => {
-            if let Some(Pane::Journal(JournalMode::Browsing { selected })) = &mut app.pane
+            if let Some(Pane::Journal { selected, mode: _ }) = &mut app.pane
                 && let Some((&date, _)) = app.days.range(..*selected).next_back()
             {
                 *selected = date;
@@ -60,7 +66,7 @@ pub fn update(app: &mut App, action: Action) -> bool {
             false
         }
         Action::NextDay => {
-            if let Some(Pane::Journal(JournalMode::Browsing { selected })) = &mut app.pane
+            if let Some(Pane::Journal { selected, mode: _ }) = &mut app.pane
                 && let Some((&date, _)) = app.days.range((Excluded(*selected), Unbounded)).next()
             {
                 *selected = date;
@@ -130,9 +136,10 @@ impl App {
             days: BTreeMap::new(),
             notes: Vec::new(),
             note_cursor: 0,
-            pane: Some(Pane::Journal(JournalMode::Browsing {
+            pane: Some(Pane::Journal {
                 selected: Local::now().date_naive(),
-            })),
+                mode: JournalMode::Browsing,
+            }),
             should_quit: false,
         }
     }
@@ -141,13 +148,20 @@ impl App {
         self.pane.as_ref().and_then(|pane| match pane {
             Pane::Capture { .. } => capture_action(key),
             Pane::Archive(_) => todo!("Archive to_action"),
-            Pane::Journal(JournalMode::Capturing { .. }) => todo!(),
-            Pane::Journal(JournalMode::Browsing { .. }) => journal_browsing_action(key),
+            Pane::Journal {
+                selected: _,
+                mode: JournalMode::Capturing { .. },
+            } => todo!(),
+            Pane::Journal {
+                selected: _,
+                mode: JournalMode::Browsing,
+            } => journal_browsing_action(key),
         })
     }
 
     pub fn retrieve_journal(&mut self) -> std::io::Result<()> {
         self.days = self.vault.recover_journal_records()?;
+        self.days.entry(Local::now().date_naive()).or_default();
         Ok(())
     }
 

@@ -256,25 +256,31 @@ fn draw_journal(
 
     let sidepane_focused = matches!(mode, JournalMode::Browsing);
 
-    let pane_block = |fg| {
+    let pane_block = |block, fg| {
         Block::bordered()
-            .borders(Borders::TOP | Borders::BOTTOM | Borders::RIGHT)
+            .borders(block)
             .border_type(BorderType::Thick)
             .border_style(Style::new().fg(fg))
             .merge_borders(MergeStrategy::Exact)
     };
 
-    let workspace_sidepane_block = pane_block(if sidepane_focused {
-        diane_theme.splash_fg
-    } else {
-        diane_theme.spacer
-    });
+    let workspace_sidepane_block = pane_block(
+        Borders::TOP | Borders::BOTTOM | Borders::RIGHT,
+        if sidepane_focused {
+            diane_theme.splash_fg
+        } else {
+            diane_theme.spacer
+        },
+    );
 
-    let workspace_body_block = pane_block(if sidepane_focused {
-        diane_theme.spacer
-    } else {
-        diane_theme.splash_fg
-    });
+    let workspace_body_block = pane_block(
+        Borders::TOP | Borders::BOTTOM | Borders::LEFT,
+        if sidepane_focused {
+            diane_theme.spacer
+        } else {
+            diane_theme.splash_fg
+        },
+    );
 
     if sidepane_focused {
         frame.render_widget(&workspace_body_block, workspace_body);
@@ -362,8 +368,17 @@ pub fn capture_action(key: KeyEvent) -> Option<Action> {
 
 pub fn journal_browsing_action(key: KeyEvent) -> Option<Action> {
     match key.code {
+        KeyCode::Right => Some(Action::FocusBody),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
+        KeyCode::Esc => Some(Action::Cancel),
+        _ => None,
+    }
+}
+
+pub fn journal_capturing_action(key: KeyEvent) -> Option<Action> {
+    match key.code {
+        KeyCode::Left => Some(Action::FocusSidepane),
         KeyCode::Esc => Some(Action::Cancel),
         _ => None,
     }

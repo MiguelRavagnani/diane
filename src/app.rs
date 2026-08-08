@@ -7,7 +7,7 @@ use crossterm::event::KeyEvent;
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
-use crate::ui::{capture_action, journal_browsing_action};
+use crate::ui::{capture_action, journal_browsing_action, journal_capturing_action};
 
 // NOTE: Not sure if this should stay
 // pub enum CurrentlyEditing {
@@ -49,6 +49,8 @@ pub enum Field {
 pub enum Action {
     InsertChar(char),
     NextDay,
+    FocusSidepane,
+    FocusBody,
     PreviousDay,
     Backspace,
     Cancel,
@@ -57,6 +59,21 @@ pub enum Action {
 
 pub fn update(app: &mut App, action: Action) -> bool {
     match action {
+        Action::FocusBody => {
+            if let Some(Pane::Journal { selected: _, mode }) = &mut app.pane {
+                *mode = JournalMode::Capturing {
+                    text: String::new(),
+                    character_index: 0,
+                }
+            }
+            false
+        }
+        Action::FocusSidepane => {
+            if let Some(Pane::Journal { selected: _, mode }) = &mut app.pane {
+                *mode = JournalMode::Browsing
+            }
+            false
+        }
         Action::PreviousDay => {
             if let Some(Pane::Journal { selected, mode: _ }) = &mut app.pane
                 && let Some((&date, _)) = app.days.range(..*selected).next_back()
@@ -151,7 +168,7 @@ impl App {
             Pane::Journal {
                 selected: _,
                 mode: JournalMode::Capturing { .. },
-            } => todo!(),
+            } => journal_capturing_action(key),
             Pane::Journal {
                 selected: _,
                 mode: JournalMode::Browsing,

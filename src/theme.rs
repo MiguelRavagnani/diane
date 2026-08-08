@@ -31,33 +31,41 @@ const FILL_CHAR: char = '•';
 const NEGATIVE_CHAR: char = ' ';
 
 pub struct Theme {
+    pub bg: Color,
+    pub art: Color,
+
     pub border: Color,
+    pub divider: Color,
+    pub divider_focus: Color,
+
+    pub text: Color,
+    pub text_dim: Color,
+    pub title: Color,
+    pub hint: Color,
+
     pub selected_bg: Color,
-    pub selected_bg_unfocused: Color,
+    pub selected_bg_dim: Color,
     pub selected_fg: Color,
-    pub spacer: Color,
-    pub splash_bg: Color,
-    pub splash_fg: Color,
-    pub input_text: Color,
-    pub info_text: Color,
-    pub hint_text: Color,
-    pub section_title: Color,
 }
 
 impl Default for Theme {
     fn default() -> Self {
         Self {
+            bg: GRAY_1C141A,
+            art: RED_6E0B22,
+
             border: RED_9B1239,
+            divider: GRAY_402836,
+            divider_focus: RED_6E0B22,
+
+            text: GRAY_DDD0D6,
+            text_dim: GRAY_907E88,
+            title: RED_DE2467,
+            hint: RED_F53D8F,
+
             selected_bg: RED_DE2467,
-            selected_bg_unfocused: GRAY_402836,
+            selected_bg_dim: GRAY_402836,
             selected_fg: GRAY_1C141A,
-            spacer: GRAY_402836,
-            splash_bg: GRAY_1C141A,
-            splash_fg: RED_6E0B22,
-            input_text: GRAY_DDD0D6,
-            info_text: GRAY_907E88,
-            hint_text: RED_F53D8F,
-            section_title: RED_DE2467,
         }
     }
 }
@@ -117,7 +125,7 @@ impl Widget for BackgroundArt {
                 if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
                     cell.set_char(ch).set_style(
                         Style::new()
-                            .fg(self.theme.splash_fg)
+                            .fg(self.theme.art)
                             .add_modifier(Modifier::BOLD),
                     );
                 }

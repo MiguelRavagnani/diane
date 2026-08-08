@@ -119,7 +119,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.render_widget(Clear, area);
 
     // Render the splash
-    frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
+    frame.render_widget(Block::default().bg(diane_theme.bg), area);
 
     // Main block. Will hold the capture popup
     let [gutter, main_block] =
@@ -127,7 +127,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
 
     let main_block_inner = main_block.inner(Margin::new(2, 1));
 
-    frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
+    frame.render_widget(Block::default().bg(diane_theme.bg), area);
     frame.render_widget(
         Fill::new("▌").style(Style::new().fg(diane_theme.border)),
         gutter,
@@ -149,7 +149,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Block::new()
             .borders(Borders::BOTTOM)
             .border_type(BorderType::Thick)
-            .border_style(Style::new().fg(diane_theme.spacer)),
+            .border_style(Style::new().fg(diane_theme.divider)),
         main_block_inner_rows[1],
     );
 
@@ -157,7 +157,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Paragraph::new(Line::from(Span::styled(
             "DIANE:",
             Style::new()
-                .fg(diane_theme.section_title)
+                .fg(diane_theme.title)
                 .add_modifier(Modifier::BOLD),
         ))),
         main_block_inner_rows[0],
@@ -166,7 +166,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Paragraph::new(
             Line::from(Span::styled(
                 "esc to cancel",
-                Style::new().fg(diane_theme.info_text),
+                Style::new().fg(diane_theme.text_dim),
             ))
             .right_aligned(),
         ),
@@ -182,10 +182,10 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
             Span::styled(
                 " > ",
                 Style::new()
-                    .fg(diane_theme.hint_text)
+                    .fg(diane_theme.hint)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(text, Style::new().fg(diane_theme.input_text)),
+            Span::styled(text, Style::new().fg(diane_theme.text)),
         ])),
         input,
     );
@@ -205,14 +205,14 @@ fn draw_journal(
     frame.render_widget(Clear, area);
     // NOTE: The slpash might be too much. Maybe Ill remove it for the jorunal
     // archive window
-    frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
+    frame.render_widget(Block::default().bg(diane_theme.bg), area);
 
     let [gutter, main_block] =
         Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).areas(area);
 
     let main_block_inner_margin = main_block.inner(Margin::new(2, 1));
 
-    frame.render_widget(Block::default().bg(diane_theme.splash_bg), area);
+    frame.render_widget(Block::default().bg(diane_theme.bg), area);
     frame.render_widget(
         Fill::new("▌").style(Style::new().fg(diane_theme.border)),
         gutter,
@@ -233,7 +233,7 @@ fn draw_journal(
         Paragraph::new(Line::from(Span::styled(
             "DIANE:",
             Style::new()
-                .fg(diane_theme.section_title)
+                .fg(diane_theme.title)
                 .add_modifier(Modifier::BOLD),
         ))),
         main_block_rows[0],
@@ -242,7 +242,7 @@ fn draw_journal(
         Paragraph::new(
             Line::from(Span::styled(
                 "Header text placeholder",
-                Style::new().fg(diane_theme.info_text),
+                Style::new().fg(diane_theme.text_dim),
             ))
             .right_aligned(),
         ),
@@ -267,18 +267,18 @@ fn draw_journal(
     let workspace_sidepane_block = pane_block(
         Borders::TOP | Borders::BOTTOM | Borders::RIGHT,
         if sidepane_focused {
-            diane_theme.splash_fg
+            diane_theme.divider_focus
         } else {
-            diane_theme.spacer
+            diane_theme.divider
         },
     );
 
     let workspace_body_block = pane_block(
         Borders::TOP | Borders::BOTTOM | Borders::LEFT,
         if sidepane_focused {
-            diane_theme.spacer
+            diane_theme.divider
         } else {
-            diane_theme.splash_fg
+            diane_theme.divider_focus
         },
     );
 
@@ -303,7 +303,7 @@ fn draw_journal(
         Paragraph::new(Line::from(Span::styled(
             "Journal",
             Style::new()
-                .fg(diane_theme.info_text)
+                .fg(diane_theme.text_dim)
                 .add_modifier(Modifier::BOLD),
         ))),
         workspace_sidepane_title,
@@ -324,7 +324,7 @@ fn draw_journal(
             let (bg, fg) = if sidepane_focused {
                 (diane_theme.selected_bg, diane_theme.selected_fg)
             } else {
-                (diane_theme.selected_bg_unfocused, diane_theme.info_text)
+                (diane_theme.selected_bg_dim, diane_theme.text_dim)
             };
 
             let gutter = if !sidepane_focused && date_matched {
@@ -336,7 +336,7 @@ fn draw_journal(
             let style = if date == selected.to_string() {
                 Style::new().bg(bg).fg(fg).add_modifier(Modifier::BOLD)
             } else {
-                Style::new().fg(diane_theme.input_text)
+                Style::new().fg(diane_theme.text)
             };
 
             let pad = w.saturating_sub(date.len() + count.len() + 3);
@@ -366,7 +366,7 @@ fn draw_journal(
         Paragraph::new(
             Line::from(Span::styled(
                 "Footer text placeholder",
-                Style::new().fg(diane_theme.info_text),
+                Style::new().fg(diane_theme.text_dim),
             ))
             .right_aligned(),
         ),

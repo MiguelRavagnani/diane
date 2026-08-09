@@ -180,7 +180,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled(
-                " > ",
+                " ⪢ ",
                 Style::new()
                     .fg(diane_theme.hint)
                     .add_modifier(Modifier::BOLD),
@@ -203,9 +203,6 @@ fn draw_journal(
     let diane_theme = Theme::default();
 
     frame.render_widget(Clear, area);
-    // NOTE: The slpash might be too much. Maybe Ill remove it for the jorunal
-    // archive window
-    frame.render_widget(Block::default().bg(diane_theme.bg), area);
 
     let [gutter, main_block] =
         Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).areas(area);
@@ -361,6 +358,63 @@ fn draw_journal(
     );
 
     frame.render_widget(daily_paragraph, workspace_sidepane_content);
+
+    if !sidepane_focused {
+        let workspace_body_inner = workspace_body.inner(Margin::new(2, 1));
+
+        let [workspace_body_title, _, workspace_body_content] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Fill(1),
+        ])
+        .areas(workspace_body_inner);
+
+        frame.render_widget(
+            Paragraph::new(
+                Line::from(Span::styled(
+                    selected.to_string(),
+                    Style::new()
+                        .fg(diane_theme.text_dim)
+                        .add_modifier(Modifier::BOLD),
+                ))
+                .centered(),
+            ),
+            workspace_body_title,
+        );
+
+        match days.get(selected) {
+            Some(entry) => {
+                let entry_inner_rows: Vec<Line> = entry
+                    .records
+                    .iter()
+                    .flat_map(|record| {
+                        vec![
+                            Line::default(),
+                            Line::from(vec![
+                                Span::styled("○ ", Style::new().fg(diane_theme.hint)),
+                                Span::styled(
+                                    record.at.format("%H:%M").to_string(),
+                                    Style::new().fg(diane_theme.text_dim),
+                                ),
+                                Span::styled(": ", Style::new().fg(diane_theme.text_dim)),
+                                Span::styled(&record.text, Style::new().fg(diane_theme.text)),
+                            ]),
+                        ]
+                    })
+                    .collect();
+                frame.render_widget(
+                    Paragraph::new(entry_inner_rows),
+                    workspace_body_content.inner(Margin::new(10, 1)),
+                );
+            }
+            None => todo!(),
+        }
+
+        // .iter()
+        // .rev()
+        // .map(|(date, record)| (date.to_string(), record.records.len().to_string()))
+        // .collect();
+    }
 
     frame.render_widget(
         Paragraph::new(

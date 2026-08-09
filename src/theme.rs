@@ -123,11 +123,8 @@ impl Widget for BackgroundArt {
             for x in 0..cols {
                 let ch = self.at(x as usize, y as usize);
                 if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
-                    cell.set_char(ch).set_style(
-                        Style::new()
-                            .fg(self.theme.art)
-                            .add_modifier(Modifier::BOLD),
-                    );
+                    cell.set_char(ch)
+                        .set_style(Style::new().fg(self.theme.art).add_modifier(Modifier::BOLD));
                 }
             }
         }

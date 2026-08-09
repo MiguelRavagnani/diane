@@ -155,7 +155,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "DIANE:",
+            "◮◮  DIANE:",
             Style::new()
                 .fg(diane_theme.title)
                 .add_modifier(Modifier::BOLD),
@@ -180,7 +180,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled(
-                " ⪢ ",
+                " ❯ ",
                 Style::new()
                     .fg(diane_theme.hint)
                     .add_modifier(Modifier::BOLD),
@@ -228,7 +228,7 @@ fn draw_journal(
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "DIANE:",
+            "◭◭  DIANE:",
             Style::new()
                 .fg(diane_theme.title)
                 .add_modifier(Modifier::BOLD),
@@ -391,7 +391,7 @@ fn draw_journal(
                         vec![
                             Line::default(),
                             Line::from(vec![
-                                Span::styled("○ ", Style::new().fg(diane_theme.hint)),
+                                Span::styled("❖ ", Style::new().fg(diane_theme.hint)),
                                 Span::styled(
                                     record.at.format("%H:%M").to_string(),
                                     Style::new().fg(diane_theme.text_dim),

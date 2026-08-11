@@ -1,3 +1,4 @@
+use chrono::Local;
 use diane::app::App;
 use diane::cli::Cli;
 use diane::config::Config;
@@ -25,8 +26,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             app.flush_journal()?;
         }
         None => {
-            app.retrieve_journal()?;
             app.pane = Some(input.initial_pane());
+            app.retrieve_journal()?;
             let mut terminal = ratatui::init();
             run(&mut terminal, &mut app)?;
             ratatui::restore();

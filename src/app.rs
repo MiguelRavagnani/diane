@@ -178,7 +178,13 @@ impl App {
 
     pub fn retrieve_journal(&mut self) -> std::io::Result<()> {
         self.days = self.vault.recover_journal_records()?;
-        self.days.entry(Local::now().date_naive()).or_default();
+
+        if let Some(Pane::Journal { selected, .. }) = &mut self.pane
+            && let Some((&date, _)) = self.days.range(..=*selected).next_back()
+        {
+            *selected = date;
+        }
+
         Ok(())
     }
 

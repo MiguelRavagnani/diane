@@ -416,10 +416,15 @@ fn draw_journal(
         // .collect();
     }
 
+    let footer_note = if sidepane_focused {
+        journal_browsing_instructions()
+    } else {
+        journal_capturing_instructions()
+    };
     frame.render_widget(
         Paragraph::new(
             Line::from(Span::styled(
-                "Footer text placeholder",
+                footer_note,
                 Style::new().fg(diane_theme.text_dim),
             ))
             .right_aligned(),
@@ -438,9 +443,17 @@ pub fn capture_action(key: KeyEvent) -> Option<Action> {
     }
 }
 
+fn journal_browsing_instructions() -> &'static str {
+    "j/k or ↑/↓ select day  ·  Enter or → open  ·  esc quit"
+}
+
+fn journal_capturing_instructions() -> &'static str {
+    "← back  ·  esc quit"
+}
+
 pub fn journal_browsing_action(key: KeyEvent) -> Option<Action> {
     match key.code {
-        KeyCode::Right => Some(Action::FocusBody),
+        KeyCode::Right | KeyCode::Enter => Some(Action::FocusBody),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
         KeyCode::Esc => Some(Action::Cancel),

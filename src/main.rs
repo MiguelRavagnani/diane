@@ -1,4 +1,3 @@
-use chrono::Local;
 use diane::app::App;
 use diane::cli::Cli;
 use diane::config::Config;

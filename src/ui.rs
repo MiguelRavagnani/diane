@@ -77,8 +77,8 @@ fn proportinal_centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect
     horizontal[1]
 }
 
-fn draw(frame: &mut Frame, app: &App) {
-    match &app.pane {
+fn draw(frame: &mut Frame, app: &mut App) {
+    match &mut app.pane {
         Some(Pane::Capture {
             text,
             character_index,
@@ -191,7 +191,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16, the
 fn draw_journal(
     frame: &mut Frame,
     days: &BTreeMap<NaiveDate, Day>,
-    mode: &JournalMode,
+    mode: &mut JournalMode,
     selected: &NaiveDate,
     theme: &Theme,
 ) {
@@ -347,10 +347,7 @@ fn draw_journal(
 
     frame.render_widget(daily_paragraph, workspace_sidepane_content);
 
-    if let JournalMode::FocusedRecord {
-        vertical_scroll_state,
-    } = mode
-    {
+    if let JournalMode::FocusedRecord { vertical_scroll } = mode {
         let workspace_body_inner = workspace_body.inner(Margin::new(2, 1));
 
         let [workspace_body_title, _, workspace_body_content] = Layout::vertical([
@@ -398,26 +395,20 @@ fn draw_journal(
                     })
                     .collect();
 
-                let scrollbar_state = vertical_scroll_state.content_length(entry_inner_rows.len());
-
                 let [text_area, bar_area] =
                     Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
 
                 let viewport = text_area.height as usize;
                 let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
-                let scroll = vertical_scroll_state.get_position().min(max_scroll);
+                *vertical_scroll = (*vertical_scroll).min(max_scroll);
 
                 // Rendering rows witing margin
                 frame.render_widget(
-                    Paragraph::new(entry_inner_rows)
-                        .scroll((scrollbar_state.get_position() as u16, 0)),
+                    Paragraph::new(entry_inner_rows).scroll((*vertical_scroll as u16, 0)),
                     text_area,
                 );
+
                 if max_scroll > 0 {
-                    let mut sb = ScrollbarState::default()
-                        .content_length(max_scroll + 1) // scroll positions: 0..=max_scroll
-                        .viewport_content_length(viewport) // visible rows
-                        .position(scroll);
                     frame.render_stateful_widget(
                         Scrollbar::new(ScrollbarOrientation::VerticalRight)
                             .symbols(Set {
@@ -428,7 +419,10 @@ fn draw_journal(
                             })
                             .style(Style::new().fg(theme.hint)),
                         bar_area,
-                        &mut sb,
+                        &mut ScrollbarState::default()
+                            .content_length(max_scroll + 1) // scroll positions: 0..=max_scroll
+                            .viewport_content_length(viewport) // visible rows
+                            .position(*vertical_scroll),
                     );
                 }
             }

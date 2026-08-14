@@ -34,13 +34,8 @@ pub enum Pane {
 
 pub enum JournalMode {
     BrowsingSidepane,
-    FocusedRecord {
-        vertical_scroll_state: ScrollbarState,
-    },
-    Capturing {
-        text: String,
-        character_index: u16,
-    },
+    FocusedRecord { vertical_scroll: usize },
+    Capturing { text: String, character_index: u16 },
 }
 
 pub enum ArchiveMode {
@@ -74,35 +69,27 @@ pub fn update(app: &mut App, action: Action) -> bool {
     match action {
         Action::ScrollbarNext => {
             if let Some(Pane::Journal {
-                mode:
-                    JournalMode::FocusedRecord {
-                        vertical_scroll_state,
-                    },
+                mode: JournalMode::FocusedRecord { vertical_scroll },
                 ..
             }) = &mut app.pane
             {
-                vertical_scroll_state.next();
+                *vertical_scroll += 1;
             }
             false
         }
         Action::ScrollbarPrevious => {
             if let Some(Pane::Journal {
-                mode:
-                    JournalMode::FocusedRecord {
-                        vertical_scroll_state,
-                    },
+                mode: JournalMode::FocusedRecord { vertical_scroll },
                 ..
             }) = &mut app.pane
             {
-                vertical_scroll_state.prev();
+                *vertical_scroll = vertical_scroll.saturating_sub(1);
             }
             false
         }
         Action::FocusRecord => {
-            if let Some(Pane::Journal { selected: _, mode }) = &mut app.pane {
-                *mode = JournalMode::FocusedRecord {
-                    vertical_scroll_state: ScrollbarState::new(10),
-                }
+            if let Some(Pane::Journal { mode, .. }) = &mut app.pane {
+                *mode = JournalMode::FocusedRecord { vertical_scroll: 0 }
             }
             false
         }

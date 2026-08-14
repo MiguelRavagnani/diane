@@ -6,9 +6,12 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Constraint, Flex, Layout, Margin, Position, Rect, Spacing},
     style::{Modifier, Style, Stylize},
-    symbols::merge::MergeStrategy,
+    symbols::{merge::MergeStrategy, scrollbar::Set},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Clear, Fill, Paragraph},
+    widgets::{
+        Block, BorderType, Borders, Clear, Fill, Paragraph, Scrollbar, ScrollbarOrientation,
+        ScrollbarState,
+    },
 };
 
 use crate::{
@@ -81,14 +84,14 @@ fn draw(frame: &mut Frame, app: &App) {
             character_index,
         }) => {
             background(frame);
-            draw_capture_poopup(frame, text, character_index);
+            draw_capture_poopup(frame, text, character_index, &app.theme);
         }
         // TODO: This Archive and Journal will sahre a bunch of visual code for now.
         // Once I get this working, Ill clean it up, promisse to myself
         Some(Pane::Archive(_)) => todo!("archive view"),
         Some(Pane::Journal { selected, mode }) => {
             background(frame);
-            draw_journal(frame, &app.days, mode, selected);
+            draw_journal(frame, &app.days, mode, selected, &app.theme);
         }
         None => {}
     }
@@ -108,9 +111,8 @@ fn background(frame: &mut Frame) {
     );
 }
 
-fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
+fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16, theme: &Theme) {
     let area = centered_rect(65, 7, frame.area());
-    let diane_theme = Theme::default();
 
     // Im starting to get lost, so Ill leave some comments here about the
     // damn UI
@@ -119,7 +121,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
     frame.render_widget(Clear, area);
 
     // Render the splash
-    frame.render_widget(Block::default().bg(diane_theme.bg), area);
+    frame.render_widget(Block::default().bg(theme.bg), area);
 
     // Main block. Will hold the capture popup
     let [gutter, main_block] =
@@ -127,11 +129,8 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
 
     let main_block_inner = main_block.inner(Margin::new(2, 1));
 
-    frame.render_widget(Block::default().bg(diane_theme.bg), area);
-    frame.render_widget(
-        Fill::new("▌").style(Style::new().fg(diane_theme.border)),
-        gutter,
-    );
+    frame.render_widget(Block::default().bg(theme.bg), area);
+    frame.render_widget(Fill::new("▌").style(Style::new().fg(theme.border)), gutter);
 
     // here, the division is:
     //  1 - Header
@@ -149,16 +148,14 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Block::new()
             .borders(Borders::BOTTOM)
             .border_type(BorderType::Thick)
-            .border_style(Style::new().fg(diane_theme.divider)),
+            .border_style(Style::new().fg(theme.divider)),
         main_block_inner_rows[1],
     );
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "◮◮  DIANE:",
-            Style::new()
-                .fg(diane_theme.title)
-                .add_modifier(Modifier::BOLD),
+            Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
         ))),
         main_block_inner_rows[0],
     );
@@ -166,7 +163,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Paragraph::new(
             Line::from(Span::styled(
                 "esc to cancel",
-                Style::new().fg(diane_theme.text_dim),
+                Style::new().fg(theme.text_dim),
             ))
             .right_aligned(),
         ),
@@ -181,11 +178,9 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16) {
         Paragraph::new(Line::from(vec![
             Span::styled(
                 " ❯ ",
-                Style::new()
-                    .fg(diane_theme.hint)
-                    .add_modifier(Modifier::BOLD),
+                Style::new().fg(theme.hint).add_modifier(Modifier::BOLD),
             ),
-            Span::styled(text, Style::new().fg(diane_theme.text)),
+            Span::styled(text, Style::new().fg(theme.text)),
         ])),
         input,
     );
@@ -198,9 +193,9 @@ fn draw_journal(
     days: &BTreeMap<NaiveDate, Day>,
     mode: &JournalMode,
     selected: &NaiveDate,
+    theme: &Theme,
 ) {
     let area = proportinal_centered_rect(90, 90, frame.area());
-    let diane_theme = Theme::default();
 
     frame.render_widget(Clear, area);
 
@@ -209,11 +204,8 @@ fn draw_journal(
 
     let main_block_inner_margin = main_block.inner(Margin::new(2, 1));
 
-    frame.render_widget(Block::default().bg(diane_theme.bg), area);
-    frame.render_widget(
-        Fill::new("▌").style(Style::new().fg(diane_theme.border)),
-        gutter,
-    );
+    frame.render_widget(Block::default().bg(theme.bg), area);
+    frame.render_widget(Fill::new("▌").style(Style::new().fg(theme.border)), gutter);
 
     // Area for:
     //   1 - Header
@@ -229,9 +221,7 @@ fn draw_journal(
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "◭◭  DIANE:",
-            Style::new()
-                .fg(diane_theme.title)
-                .add_modifier(Modifier::BOLD),
+            Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
         ))),
         main_block_rows[0],
     );
@@ -239,7 +229,7 @@ fn draw_journal(
         Paragraph::new(
             Line::from(Span::styled(
                 "Header text placeholder",
-                Style::new().fg(diane_theme.text_dim),
+                Style::new().fg(theme.text_dim),
             ))
             .right_aligned(),
         ),
@@ -251,7 +241,7 @@ fn draw_journal(
             .spacing(Spacing::Overlap(1))
             .areas(main_block_rows[1]);
 
-    let sidepane_focused = matches!(mode, JournalMode::Browsing);
+    let sidepane_focused = matches!(mode, JournalMode::BrowsingSidepane);
 
     let pane_block = |block, fg| {
         Block::bordered()
@@ -264,18 +254,18 @@ fn draw_journal(
     let workspace_sidepane_block = pane_block(
         Borders::TOP | Borders::BOTTOM | Borders::RIGHT,
         if sidepane_focused {
-            diane_theme.divider_focus
+            theme.divider_focus
         } else {
-            diane_theme.divider
+            theme.divider
         },
     );
 
     let workspace_body_block = pane_block(
         Borders::TOP | Borders::BOTTOM | Borders::LEFT,
         if sidepane_focused {
-            diane_theme.divider
+            theme.divider
         } else {
-            diane_theme.divider_focus
+            theme.divider_focus
         },
     );
 
@@ -299,9 +289,7 @@ fn draw_journal(
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Journal",
-            Style::new()
-                .fg(diane_theme.text_dim)
-                .add_modifier(Modifier::BOLD),
+            Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
         ))),
         workspace_sidepane_title,
     );
@@ -319,13 +307,13 @@ fn draw_journal(
             let w = workspace_sidepane_content.width as usize;
 
             let (bg, fg) = if sidepane_focused {
-                (diane_theme.selected_bg, diane_theme.selected_fg)
+                (theme.selected_bg, theme.selected_fg)
             } else {
-                (diane_theme.selected_bg_dim, diane_theme.text_dim)
+                (theme.selected_bg_dim, theme.text_dim)
             };
 
             let gutter = if !sidepane_focused && date_matched {
-                Span::styled("▌", Style::new().fg(diane_theme.border))
+                Span::styled("▌", Style::new().fg(theme.border))
             } else {
                 Span::raw(" ")
             };
@@ -333,7 +321,7 @@ fn draw_journal(
             let style = if date == selected.to_string() {
                 Style::new().bg(bg).fg(fg).add_modifier(Modifier::BOLD)
             } else {
-                Style::new().fg(diane_theme.text)
+                Style::new().fg(theme.text)
             };
 
             let pad = w.saturating_sub(date.len() + count.len() + 3);
@@ -359,7 +347,10 @@ fn draw_journal(
 
     frame.render_widget(daily_paragraph, workspace_sidepane_content);
 
-    if !sidepane_focused {
+    if let JournalMode::FocusedRecord {
+        vertical_scroll_state,
+    } = mode
+    {
         let workspace_body_inner = workspace_body.inner(Margin::new(2, 1));
 
         let [workspace_body_title, _, workspace_body_content] = Layout::vertical([
@@ -373,9 +364,7 @@ fn draw_journal(
             Paragraph::new(
                 Line::from(Span::styled(
                     selected.to_string(),
-                    Style::new()
-                        .fg(diane_theme.text_dim)
-                        .add_modifier(Modifier::BOLD),
+                    Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
                 ))
                 .centered(),
             ),
@@ -397,39 +386,79 @@ fn draw_journal(
                         vec![
                             Line::default(),
                             Line::from(vec![
-                                Span::styled("❖ ", Style::new().fg(diane_theme.hint)),
+                                Span::styled("❖ ", Style::new().fg(theme.hint)),
                                 Span::styled(
                                     record.at.format("%H:%M").to_string(),
-                                    Style::new().fg(diane_theme.text_dim),
+                                    Style::new().fg(theme.text_dim),
                                 ),
-                                Span::styled(": ", Style::new().fg(diane_theme.text_dim)),
-                                Span::styled(&record.text, Style::new().fg(diane_theme.text)),
+                                Span::styled(": ", Style::new().fg(theme.text_dim)),
+                                Span::styled(&record.text, Style::new().fg(theme.text)),
                             ]),
                         ]
                     })
                     .collect();
 
+                let scrollbar_state = vertical_scroll_state.content_length(entry_inner_rows.len());
+
+                let [text_area, bar_area] =
+                    Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
+
+                let viewport = text_area.height as usize;
+                let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
+                let scroll = vertical_scroll_state.get_position().min(max_scroll);
+
                 // Rendering rows witing margin
-                frame.render_widget(Paragraph::new(entry_inner_rows), inner);
+                frame.render_widget(
+                    Paragraph::new(entry_inner_rows)
+                        .scroll((scrollbar_state.get_position() as u16, 0)),
+                    text_area,
+                );
+                if max_scroll > 0 {
+                    let mut sb = ScrollbarState::default()
+                        .content_length(max_scroll + 1) // scroll positions: 0..=max_scroll
+                        .viewport_content_length(viewport) // visible rows
+                        .position(scroll);
+                    frame.render_stateful_widget(
+                        Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                            .symbols(Set {
+                                track: " ",
+                                thumb: "∙",
+                                begin: "-",
+                                end: "-",
+                            })
+                            .style(Style::new().fg(theme.hint)),
+                        bar_area,
+                        &mut sb,
+                    );
+                }
             }
             None => todo!(),
         }
     }
 
     let footer_note = if sidepane_focused {
-        journal_browsing_instructions()
+        journal_browsing_sidepane_instructions()
     } else {
-        journal_capturing_instructions()
+        journal_focused_record_instructions()
     };
+
     frame.render_widget(
         Paragraph::new(
-            Line::from(Span::styled(
-                footer_note,
-                Style::new().fg(diane_theme.text_dim),
-            ))
-            .right_aligned(),
+            Line::from(Span::styled(footer_note, Style::new().fg(theme.text_dim))).right_aligned(),
         ),
         main_block_rows[2],
+    );
+}
+
+fn render_scrollbar(frame: &mut Frame, area: Rect, vertical: &mut ScrollbarState) {
+    let scrollbar = Scrollbar::new(ratatui::widgets::ScrollbarOrientation::VerticalRight);
+    frame.render_stateful_widget(
+        scrollbar,
+        area.inner(Margin {
+            vertical: 1,
+            horizontal: 0,
+        }),
+        vertical,
     );
 }
 
@@ -443,20 +472,35 @@ pub fn capture_action(key: KeyEvent) -> Option<Action> {
     }
 }
 
-fn journal_browsing_instructions() -> &'static str {
+fn journal_browsing_sidepane_instructions() -> &'static str {
     "j/k or ↑/↓ select day  ·  l or → open  ·  esc quit"
 }
 
+fn journal_focused_record_instructions() -> &'static str {
+    "j/k or ↑/↓ scroll up or down  ·  h or ← back  ·  esc quit"
+}
+
+#[allow(dead_code)]
 fn journal_capturing_instructions() -> &'static str {
     "h or ← back  ·  esc quit"
 }
 
-pub fn journal_browsing_action(key: KeyEvent) -> Option<Action> {
+pub fn journal_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
     match key.code {
-        KeyCode::Right | KeyCode::Char('l') => Some(Action::FocusBody),
+        KeyCode::Right | KeyCode::Char('l') => Some(Action::FocusRecord),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
         KeyCode::Esc => Some(Action::Cancel),
+        _ => None,
+    }
+}
+
+pub fn journal_focused_record_action(key: KeyEvent) -> Option<Action> {
+    match key.code {
+        KeyCode::Left | KeyCode::Char('h') => Some(Action::FocusSidepane),
+        KeyCode::Esc => Some(Action::Cancel),
+        KeyCode::Char('j') => Some(Action::ScrollbarNext),
+        KeyCode::Char('k') => Some(Action::ScrollbarPrevious),
         _ => None,
     }
 }

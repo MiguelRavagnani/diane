@@ -33,7 +33,7 @@ impl Cli {
         } else {
             Pane::Journal {
                 selected: Local::now().date_naive(),
-                mode: JournalMode::Browsing,
+                mode: JournalMode::BrowsingSidepane,
             }
         }
     }

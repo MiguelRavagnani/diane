@@ -3,12 +3,16 @@ use std::ops::Bound::{Excluded, Unbounded};
 
 use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
+use ratatui::widgets::ScrollbarState;
 
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
 use crate::theme::Theme;
-use crate::ui::{capture_action, journal_browsing_action, journal_capturing_action};
+use crate::ui::{
+    capture_action, journal_browsing_sidepane_action, journal_capturing_action,
+    journal_focused_record_action,
+};
 
 // NOTE: Not sure if this should stay
 // pub enum CurrentlyEditing {
@@ -29,8 +33,14 @@ pub enum Pane {
 }
 
 pub enum JournalMode {
-    Browsing,
-    Capturing { text: String, character_index: u16 },
+    BrowsingSidepane,
+    FocusedRecord {
+        vertical_scroll_state: ScrollbarState,
+    },
+    Capturing {
+        text: String,
+        character_index: u16,
+    },
 }
 
 pub enum ArchiveMode {
@@ -51,7 +61,9 @@ pub enum Action {
     InsertChar(char),
     NextDay,
     FocusSidepane,
-    FocusBody,
+    FocusRecord,
+    ScrollbarNext,
+    ScrollbarPrevious,
     PreviousDay,
     Backspace,
     Cancel,
@@ -60,18 +72,43 @@ pub enum Action {
 
 pub fn update(app: &mut App, action: Action) -> bool {
     match action {
-        Action::FocusBody => {
+        Action::ScrollbarNext => {
+            if let Some(Pane::Journal {
+                mode:
+                    JournalMode::FocusedRecord {
+                        vertical_scroll_state,
+                    },
+                ..
+            }) = &mut app.pane
+            {
+                vertical_scroll_state.next();
+            }
+            false
+        }
+        Action::ScrollbarPrevious => {
+            if let Some(Pane::Journal {
+                mode:
+                    JournalMode::FocusedRecord {
+                        vertical_scroll_state,
+                    },
+                ..
+            }) = &mut app.pane
+            {
+                vertical_scroll_state.prev();
+            }
+            false
+        }
+        Action::FocusRecord => {
             if let Some(Pane::Journal { selected: _, mode }) = &mut app.pane {
-                *mode = JournalMode::Capturing {
-                    text: String::new(),
-                    character_index: 0,
+                *mode = JournalMode::FocusedRecord {
+                    vertical_scroll_state: ScrollbarState::new(10),
                 }
             }
             false
         }
         Action::FocusSidepane => {
             if let Some(Pane::Journal { selected: _, mode }) = &mut app.pane {
-                *mode = JournalMode::Browsing
+                *mode = JournalMode::BrowsingSidepane
             }
             false
         }
@@ -158,7 +195,7 @@ impl App {
             note_cursor: 0,
             pane: Some(Pane::Journal {
                 selected: Local::now().date_naive(),
-                mode: JournalMode::Browsing,
+                mode: JournalMode::BrowsingSidepane,
             }),
             should_quit: false,
             theme: Theme::named(&config.theme),
@@ -175,8 +212,12 @@ impl App {
             } => journal_capturing_action(key),
             Pane::Journal {
                 selected: _,
-                mode: JournalMode::Browsing,
-            } => journal_browsing_action(key),
+                mode: JournalMode::BrowsingSidepane,
+            } => journal_browsing_sidepane_action(key),
+            Pane::Journal {
+                selected: _,
+                mode: JournalMode::FocusedRecord { .. },
+            } => journal_focused_record_action(key),
         })
     }
 

@@ -7,6 +7,7 @@ use crossterm::event::KeyEvent;
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
+use crate::theme::Theme;
 use crate::ui::{capture_action, journal_browsing_action, journal_capturing_action};
 
 // NOTE: Not sure if this should stay
@@ -144,6 +145,8 @@ pub struct App {
     // soon. Maybe detach the CLI's text input matching for good...
     pub pane: Option<Pane>,
     pub should_quit: bool,
+
+    pub theme: Theme,
 }
 
 impl App {
@@ -158,6 +161,7 @@ impl App {
                 mode: JournalMode::Browsing,
             }),
             should_quit: false,
+            theme: Theme::named(&config.theme),
         }
     }
 

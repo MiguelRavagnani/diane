@@ -382,6 +382,12 @@ fn draw_journal(
             workspace_body_title,
         );
 
+        // Padding for the inner body rendered
+
+        let [inner] = Layout::horizontal([Constraint::Max(95)])
+            .flex(Flex::Center)
+            .areas(workspace_body_content.inner(Margin::new(0, 1)));
+
         match days.get(selected) {
             Some(entry) => {
                 let entry_inner_rows: Vec<Line> = entry
@@ -402,18 +408,12 @@ fn draw_journal(
                         ]
                     })
                     .collect();
-                frame.render_widget(
-                    Paragraph::new(entry_inner_rows),
-                    workspace_body_content.inner(Margin::new(10, 1)),
-                );
+
+                // Rendering rows witing margin
+                frame.render_widget(Paragraph::new(entry_inner_rows), inner);
             }
             None => todo!(),
         }
-
-        // .iter()
-        // .rev()
-        // .map(|(date, record)| (date.to_string(), record.records.len().to_string()))
-        // .collect();
     }
 
     let footer_note = if sidepane_focused {
@@ -444,16 +444,16 @@ pub fn capture_action(key: KeyEvent) -> Option<Action> {
 }
 
 fn journal_browsing_instructions() -> &'static str {
-    "j/k or ↑/↓ select day  ·  Enter or → open  ·  esc quit"
+    "j/k or ↑/↓ select day  ·  l or → open  ·  esc quit"
 }
 
 fn journal_capturing_instructions() -> &'static str {
-    "← back  ·  esc quit"
+    "h or ← back  ·  esc quit"
 }
 
 pub fn journal_browsing_action(key: KeyEvent) -> Option<Action> {
     match key.code {
-        KeyCode::Right | KeyCode::Enter => Some(Action::FocusBody),
+        KeyCode::Right | KeyCode::Char('l') => Some(Action::FocusBody),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
         KeyCode::Esc => Some(Action::Cancel),
@@ -463,7 +463,7 @@ pub fn journal_browsing_action(key: KeyEvent) -> Option<Action> {
 
 pub fn journal_capturing_action(key: KeyEvent) -> Option<Action> {
     match key.code {
-        KeyCode::Left => Some(Action::FocusSidepane),
+        KeyCode::Left | KeyCode::Char('h') => Some(Action::FocusSidepane),
         KeyCode::Esc => Some(Action::Cancel),
         _ => None,
     }

@@ -48,24 +48,35 @@ pub struct Theme {
     pub selected_fg: Color,
 }
 
+pub const DIANE: Theme = Theme {
+    bg: GRAY_1C141A,
+    art: RED_6E0B22,
+
+    border: RED_9B1239,
+    divider: GRAY_402836,
+    divider_focus: RED_6E0B22,
+
+    text: GRAY_DDD0D6,
+    text_dim: GRAY_907E88,
+    title: RED_DE2467,
+    hint: RED_F53D8F,
+
+    selected_bg: RED_DE2467,
+    selected_bg_dim: GRAY_402836,
+    selected_fg: GRAY_1C141A,
+};
+
 impl Default for Theme {
     fn default() -> Self {
-        Self {
-            bg: GRAY_1C141A,
-            art: RED_6E0B22,
+        DIANE
+    }
+}
 
-            border: RED_9B1239,
-            divider: GRAY_402836,
-            divider_focus: RED_6E0B22,
-
-            text: GRAY_DDD0D6,
-            text_dim: GRAY_907E88,
-            title: RED_DE2467,
-            hint: RED_F53D8F,
-
-            selected_bg: RED_DE2467,
-            selected_bg_dim: GRAY_402836,
-            selected_fg: GRAY_1C141A,
+impl Theme {
+    pub fn named(name: &str) -> Self {
+        match name {
+            "default" => DIANE,
+            _ => DIANE,
         }
     }
 }
@@ -77,7 +88,7 @@ pub struct BackgroundArt {
     pub thickness: isize,
     pub ch_fill: char,
     pub ch_negative: char,
-    pub theme: Theme,
+    pub art: Color,
 }
 
 impl Default for BackgroundArt {
@@ -89,7 +100,7 @@ impl Default for BackgroundArt {
             thickness: 2,
             ch_fill: FILL_CHAR,
             ch_negative: NEGATIVE_CHAR,
-            theme: Theme::default(),
+            art: DIANE.art,
         }
     }
 }
@@ -124,7 +135,7 @@ impl Widget for BackgroundArt {
                 let ch = self.at(x as usize, y as usize);
                 if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
                     cell.set_char(ch)
-                        .set_style(Style::new().fg(self.theme.art).add_modifier(Modifier::BOLD));
+                        .set_style(Style::new().fg(self.art).add_modifier(Modifier::BOLD));
                 }
             }
         }

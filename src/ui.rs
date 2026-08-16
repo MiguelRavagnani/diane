@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, iter};
 
 use chrono::NaiveDate;
 use ratatui::{
@@ -13,6 +13,7 @@ use ratatui::{
         ScrollbarState,
     },
 };
+use ratatui_textwrap::algorithms::textwrap;
 
 use crate::{
     app::{Action, App, JournalMode, Pane, update},
@@ -376,27 +377,27 @@ fn draw_journal(
 
         match days.get(selected) {
             Some(entry) => {
+                let [text_area, bar_area] =
+                    Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
+
                 let entry_inner_rows: Vec<Line> = entry
                     .records
                     .iter()
                     .flat_map(|record| {
-                        vec![
-                            Line::default(),
-                            Line::from(vec![
-                                Span::styled("❖ ", Style::new().fg(theme.hint)),
-                                Span::styled(
-                                    record.at.format("%H:%M").to_string(),
-                                    Style::new().fg(theme.text_dim),
-                                ),
-                                Span::styled(": ", Style::new().fg(theme.text_dim)),
-                                Span::styled(&record.text, Style::new().fg(theme.text)),
-                            ]),
-                        ]
+                        let record_line = Line::from(vec![
+                            Span::styled("❖ ", Style::new().fg(theme.hint)),
+                            Span::styled(
+                                record.at.format("%H:%M").to_string(),
+                                Style::new().fg(theme.text_dim),
+                            ),
+                            Span::styled(": ", Style::new().fg(theme.text_dim)),
+                            Span::styled(&record.text, Style::new().fg(theme.text)),
+                        ]);
+
+                        iter::once(Line::default())
+                            .chain(textwrap::wrap_first_fit(&record_line, text_area.width))
                     })
                     .collect();
-
-                let [text_area, bar_area] =
-                    Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
 
                 let viewport = text_area.height as usize;
                 let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
@@ -413,9 +414,9 @@ fn draw_journal(
                         Scrollbar::new(ScrollbarOrientation::VerticalRight)
                             .symbols(Set {
                                 track: " ",
-                                thumb: "∙",
-                                begin: "-",
-                                end: "-",
+                                thumb: ".",
+                                begin: "▲",
+                                end: "▼",
                             })
                             .style(Style::new().fg(theme.hint)),
                         bar_area,

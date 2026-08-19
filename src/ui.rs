@@ -42,12 +42,6 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::R
     Ok(())
 }
 
-fn centered(width: Constraint, height: Constraint, area: Rect) -> Rect {
-    let [area] = Layout::vertical([height]).flex(Flex::Center).areas(area);
-    let [area] = Layout::horizontal([height]).flex(Flex::Center).areas(area);
-    area
-}
-
 fn draw(frame: &mut Frame, app: &mut App) {
     match &mut app.pane {
         Some(Pane::Capture {
@@ -267,46 +261,43 @@ fn draw_journal(
 
     // Conditional formating for the slected jounral row. Changes color
     // based on selected row, and focused pane
-    let selected_paragraph =
-        |date_matched: bool, date: String, count: String, sidepane_focused: bool| {
-            let w = workspace_sidepane_content.width as usize;
+    let selected_paragraph = |date_matched: bool, date: String, count: String| {
+        let w = workspace_sidepane_content.width as usize;
 
-            let (bg, fg) = if sidepane_focused {
-                (theme.selected_bg, theme.selected_fg)
-            } else {
-                (theme.selected_bg_dim, theme.text_dim)
-            };
-
-            let gutter = if !sidepane_focused && date_matched {
-                Span::styled("▌", Style::new().fg(theme.border))
-            } else {
-                Span::raw(" ")
-            };
-
-            let style = if date == selected.to_string() {
-                Style::new().bg(bg).fg(fg).add_modifier(Modifier::BOLD)
-            } else {
-                Style::new().fg(theme.text)
-            };
-
-            let pad = w.saturating_sub(date.len() + count.len() + 3);
-
-            Line::from(vec![
-                gutter,
-                Span::styled(date, style),
-                Span::raw(" ".repeat(pad)),
-                Span::styled(count, style),
+        let (gutter, style) = match (date_matched, sidepane_focused) {
+            (false, _) => (Span::raw(" "), Style::new().fg(theme.text)),
+            (true, true) => (
                 Span::raw(" "),
-            ])
-            .style(style)
+                Style::new()
+                    .bg(theme.selected_bg)
+                    .fg(theme.selected_fg)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            (true, false) => (
+                Span::styled("▌", Style::new().fg(theme.border)),
+                Style::new()
+                    .bg(theme.selected_bg_dim)
+                    .fg(theme.text_dim)
+                    .add_modifier(Modifier::BOLD),
+            ),
         };
+
+        let pad = w.saturating_sub(date.len() + count.len() + 3);
+
+        Line::from(vec![
+            gutter,
+            Span::styled(date, style),
+            Span::raw(" ".repeat(pad)),
+            Span::styled(count, style),
+            Span::raw(" "),
+        ])
+        .style(style)
+    };
 
     let daily_paragraph = Paragraph::new(
         daily_records
             .into_iter()
-            .map(|(date, count)| {
-                selected_paragraph(date == selected.to_string(), date, count, sidepane_focused)
-            })
+            .map(|(date, count)| selected_paragraph(date == selected.to_string(), date, count))
             .collect::<Vec<_>>(),
     );
 

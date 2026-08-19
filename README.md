@@ -17,7 +17,10 @@ Inspired by Twin Peaks.
     - [x] ASCii background (https://www.asciiart.eu/ as ref, pretty awesome)
   - [x] Draft a editable Theme to unify the style
   - [ ] Default main UI screen
-    - [ ] Journal
+    - [x] Journal
     - [ ] Archive
 - [x] Refactor the code to reflect more TEA
+- [ ] Usability
+  - [ ] Add the possiblity of capturing the journal window
+  - [ ] Allow navigating entries records and copying text to clipboard
 - [ ] TBD

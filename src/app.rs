@@ -3,7 +3,6 @@ use std::ops::Bound::{Excluded, Unbounded};
 
 use chrono::{Local, NaiveDate};
 use crossterm::event::KeyEvent;
-use ratatui::widgets::ScrollbarState;
 
 use crate::config::Config;
 use crate::entry::{Day, Note, Record};

@@ -27,6 +27,8 @@ pub const GRAY_61505A: Color = Color::Rgb(0x61, 0x50, 0x5a);
 pub const GRAY_1A0A12: Color = Color::Rgb(0x1a, 0x0a, 0x12);
 pub const GRAY_2A0F1A: Color = Color::Rgb(0x2a, 0x0f, 0x1a);
 
+pub const TITLE: &str = "⢀⣴⣄⢴⣷⣄ DIANE:";
+
 const FILL_CHAR: char = '∙';
 const NEGATIVE_CHAR: char = ' ';
 

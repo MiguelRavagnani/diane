@@ -18,8 +18,10 @@ use ratatui_textwrap::algorithms::textwrap;
 use crate::{
     app::{Action, App, JournalMode, Pane, update},
     entry::Day,
-    theme::{BackgroundArt, Theme},
+    theme::{BackgroundArt, TITLE, Theme},
 };
+
+const CONT: &str = "         ";
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
     while app.pane.is_some() {
@@ -40,42 +42,10 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::R
     Ok(())
 }
 
-fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
-    let vertical = Layout::vertical([
-        Constraint::Fill(1),
-        Constraint::Length(height),
-        Constraint::Fill(1),
-    ])
-    .spacing(Spacing::Overlap(1))
-    .split(area);
-
-    let horizontal = Layout::horizontal([
-        Constraint::Percentage((100 - percent_x) / 2),
-        Constraint::Percentage(percent_x),
-        Constraint::Percentage((100 - percent_x) / 2),
-    ])
-    .spacing(Spacing::Overlap(1))
-    .split(vertical[1]);
-
-    horizontal[1]
-}
-
-fn proportinal_centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
-    let vertical = Layout::vertical([
-        Constraint::Percentage((100 - percent_y) / 2),
-        Constraint::Percentage(percent_y),
-        Constraint::Percentage((100 - percent_y) / 2),
-    ])
-    .split(area);
-
-    let horizontal = Layout::horizontal([
-        Constraint::Percentage((100 - percent_x) / 2),
-        Constraint::Percentage(percent_x),
-        Constraint::Percentage((100 - percent_x) / 2),
-    ])
-    .split(vertical[1]);
-
-    horizontal[1]
+fn centered(width: Constraint, height: Constraint, area: Rect) -> Rect {
+    let [area] = Layout::vertical([height]).flex(Flex::Center).areas(area);
+    let [area] = Layout::horizontal([height]).flex(Flex::Center).areas(area);
+    area
 }
 
 fn draw(frame: &mut Frame, app: &mut App) {
@@ -99,7 +69,6 @@ fn draw(frame: &mut Frame, app: &mut App) {
 }
 
 fn background(frame: &mut Frame) {
-    let area = frame.area();
     frame.render_widget(
         BackgroundArt {
             amp: 3,
@@ -108,30 +77,40 @@ fn background(frame: &mut Frame) {
             thickness: 4,
             ..Default::default()
         },
-        area,
+        frame.area(),
     );
 }
 
-fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16, theme: &Theme) {
-    let area = centered_rect(65, 7, frame.area());
+fn draw_main_frame(
+    height: Constraint,
+    width: Constraint,
+    frame: &mut Frame,
+    theme: &Theme,
+) -> Rect {
+    let [area] = Layout::vertical([height])
+        .flex(Flex::Center)
+        .areas(frame.area());
+    let [area] = Layout::horizontal([width]).flex(Flex::Center).areas(area);
 
-    // Im starting to get lost, so Ill leave some comments here about the
-    // damn UI
-    //
-    // Clears the area behind the to-be-rendered background slpash
-    frame.render_widget(Clear, area);
-
-    // Render the splash
-    frame.render_widget(Block::default().bg(theme.bg), area);
-
-    // Main block. Will hold the capture popup
     let [gutter, main_block] =
         Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).areas(area);
 
     let main_block_inner = main_block.inner(Margin::new(2, 1));
 
+    frame.render_widget(Clear, area);
     frame.render_widget(Block::default().bg(theme.bg), area);
     frame.render_widget(Fill::new("▌").style(Style::new().fg(theme.border)), gutter);
+
+    main_block_inner
+}
+
+fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16, theme: &Theme) {
+    let main_block_inner = draw_main_frame(
+        Constraint::Length(7),
+        Constraint::Percentage(65),
+        frame,
+        theme,
+    );
 
     // here, the division is:
     //  1 - Header
@@ -155,7 +134,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16, the
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "◮◮  DIANE:",
+            TITLE,
             Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
         ))),
         main_block_inner_rows[0],
@@ -196,17 +175,12 @@ fn draw_journal(
     selected: &NaiveDate,
     theme: &Theme,
 ) {
-    let area = proportinal_centered_rect(90, 90, frame.area());
-
-    frame.render_widget(Clear, area);
-
-    let [gutter, main_block] =
-        Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).areas(area);
-
-    let main_block_inner_margin = main_block.inner(Margin::new(2, 1));
-
-    frame.render_widget(Block::default().bg(theme.bg), area);
-    frame.render_widget(Fill::new("▌").style(Style::new().fg(theme.border)), gutter);
+    let main_block_inner_margin = draw_main_frame(
+        Constraint::Percentage(90),
+        Constraint::Percentage(90),
+        frame,
+        theme,
+    );
 
     // Area for:
     //   1 - Header
@@ -221,19 +195,9 @@ fn draw_journal(
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "◭◭  DIANE:",
+            TITLE,
             Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
         ))),
-        main_block_rows[0],
-    );
-    frame.render_widget(
-        Paragraph::new(
-            Line::from(Span::styled(
-                "Header text placeholder",
-                Style::new().fg(theme.text_dim),
-            ))
-            .right_aligned(),
-        ),
         main_block_rows[0],
     );
 
@@ -351,34 +315,23 @@ fn draw_journal(
     if let JournalMode::FocusedRecord { vertical_scroll } = mode {
         let workspace_body_inner = workspace_body.inner(Margin::new(2, 1));
 
-        let [workspace_body_title, _, workspace_body_content] = Layout::vertical([
+        let [_, workspace_body_title, workspace_body_content] = Layout::vertical([
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Fill(1),
         ])
         .areas(workspace_body_inner);
 
-        frame.render_widget(
-            Paragraph::new(
-                Line::from(Span::styled(
-                    selected.to_string(),
-                    Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
-                ))
-                .centered(),
-            ),
-            workspace_body_title,
-        );
-
-        // Padding for the inner body rendered
-
-        let [inner] = Layout::horizontal([Constraint::Max(95)])
-            .flex(Flex::Center)
-            .areas(workspace_body_content.inner(Margin::new(0, 1)));
-
         match days.get(selected) {
             Some(entry) => {
+                // Padding for the inner body rendered
+                let [inner] = Layout::horizontal([Constraint::Max(95)])
+                    .flex(Flex::Center)
+                    .areas(workspace_body_content.inner(Margin::new(0, 1)));
                 let [text_area, bar_area] =
                     Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
+
+                let wrap_widht = text_area.width.saturating_sub(CONT.chars().count() as u16);
 
                 let entry_inner_rows: Vec<Line> = entry
                     .records
@@ -394,14 +347,44 @@ fn draw_journal(
                             Span::styled(&record.text, Style::new().fg(theme.text)),
                         ]);
 
-                        iter::once(Line::default())
-                            .chain(textwrap::wrap_first_fit(&record_line, text_area.width))
+                        iter::once(Line::default()).chain(
+                            textwrap::wrap_first_fit(&record_line, wrap_widht)
+                                .into_iter()
+                                .enumerate()
+                                .map(|(i, mut line)| {
+                                    if i > 0 {
+                                        line.spans.insert(
+                                            0,
+                                            Span::styled(CONT, Style::new().fg(theme.text_dim)),
+                                        );
+                                    }
+                                    line
+                                }),
+                        )
                     })
                     .collect();
 
                 let viewport = text_area.height as usize;
                 let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
                 *vertical_scroll = (*vertical_scroll).min(max_scroll);
+
+                // Note content title. The date of the journal entry, and how many records It has
+                frame.render_widget(
+                    Paragraph::new(
+                        Line::from(vec![
+                            Span::styled(
+                                selected.to_string(),
+                                Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
+                            ),
+                            Span::styled(
+                                format!("  ·  {} entries", entry.records.len()),
+                                Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
+                            ),
+                        ])
+                        .centered(),
+                    ),
+                    workspace_body_title,
+                );
 
                 // Rendering rows witing margin
                 frame.render_widget(
@@ -442,18 +425,6 @@ fn draw_journal(
             Line::from(Span::styled(footer_note, Style::new().fg(theme.text_dim))).right_aligned(),
         ),
         main_block_rows[2],
-    );
-}
-
-fn render_scrollbar(frame: &mut Frame, area: Rect, vertical: &mut ScrollbarState) {
-    let scrollbar = Scrollbar::new(ratatui::widgets::ScrollbarOrientation::VerticalRight);
-    frame.render_stateful_widget(
-        scrollbar,
-        area.inner(Margin {
-            vertical: 1,
-            horizontal: 0,
-        }),
-        vertical,
     );
 }
 

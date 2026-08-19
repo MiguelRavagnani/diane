@@ -303,7 +303,9 @@ fn draw_journal(
 
     frame.render_widget(daily_paragraph, workspace_sidepane_content);
 
-    if let JournalMode::FocusedRecord { vertical_scroll } = mode {
+    if let JournalMode::FocusedRecord { vertical_scroll } = mode
+        && let Some(entry) = days.get(selected)
+    {
         let workspace_body_inner = workspace_body.inner(Margin::new(2, 1));
 
         let [_, workspace_body_title, workspace_body_content] = Layout::vertical([
@@ -313,95 +315,88 @@ fn draw_journal(
         ])
         .areas(workspace_body_inner);
 
-        match days.get(selected) {
-            Some(entry) => {
-                // Padding for the inner body rendered
-                let [inner] = Layout::horizontal([Constraint::Max(95)])
-                    .flex(Flex::Center)
-                    .areas(workspace_body_content.inner(Margin::new(0, 1)));
-                let [text_area, bar_area] =
-                    Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
+        // Padding for the inner body rendered
+        let [inner] = Layout::horizontal([Constraint::Max(95)])
+            .flex(Flex::Center)
+            .areas(workspace_body_content.inner(Margin::new(0, 1)));
+        let [text_area, bar_area] =
+            Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
 
-                let wrap_widht = text_area.width.saturating_sub(CONT.chars().count() as u16);
+        let wrap_widht = text_area.width.saturating_sub(CONT.chars().count() as u16);
 
-                let entry_inner_rows: Vec<Line> = entry
-                    .records
-                    .iter()
-                    .flat_map(|record| {
-                        let record_line = Line::from(vec![
-                            Span::styled("❖ ", Style::new().fg(theme.hint)),
-                            Span::styled(
-                                record.at.format("%H:%M").to_string(),
-                                Style::new().fg(theme.text_dim),
-                            ),
-                            Span::styled(": ", Style::new().fg(theme.text_dim)),
-                            Span::styled(&record.text, Style::new().fg(theme.text)),
-                        ]);
-
-                        iter::once(Line::default()).chain(
-                            textwrap::wrap_first_fit(&record_line, wrap_widht)
-                                .into_iter()
-                                .enumerate()
-                                .map(|(i, mut line)| {
-                                    if i > 0 {
-                                        line.spans.insert(
-                                            0,
-                                            Span::styled(CONT, Style::new().fg(theme.text_dim)),
-                                        );
-                                    }
-                                    line
-                                }),
-                        )
-                    })
-                    .collect();
-
-                let viewport = text_area.height as usize;
-                let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
-                *vertical_scroll = (*vertical_scroll).min(max_scroll);
-
-                // Note content title. The date of the journal entry, and how many records It has
-                frame.render_widget(
-                    Paragraph::new(
-                        Line::from(vec![
-                            Span::styled(
-                                selected.to_string(),
-                                Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
-                            ),
-                            Span::styled(
-                                format!("  ·  {} entries", entry.records.len()),
-                                Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
-                            ),
-                        ])
-                        .centered(),
+        let entry_inner_rows: Vec<Line> = entry
+            .records
+            .iter()
+            .flat_map(|record| {
+                let record_line = Line::from(vec![
+                    Span::styled("❖ ", Style::new().fg(theme.hint)),
+                    Span::styled(
+                        record.at.format("%H:%M").to_string(),
+                        Style::new().fg(theme.text_dim),
                     ),
-                    workspace_body_title,
-                );
+                    Span::styled(": ", Style::new().fg(theme.text_dim)),
+                    Span::styled(&record.text, Style::new().fg(theme.text)),
+                ]);
 
-                // Rendering rows witing margin
-                frame.render_widget(
-                    Paragraph::new(entry_inner_rows).scroll((*vertical_scroll as u16, 0)),
-                    text_area,
-                );
+                iter::once(Line::default()).chain(
+                    textwrap::wrap_first_fit(&record_line, wrap_widht)
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, mut line)| {
+                            if i > 0 {
+                                line.spans
+                                    .insert(0, Span::styled(CONT, Style::new().fg(theme.text_dim)));
+                            }
+                            line
+                        }),
+                )
+            })
+            .collect();
 
-                if max_scroll > 0 {
-                    frame.render_stateful_widget(
-                        Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                            .symbols(Set {
-                                track: " ",
-                                thumb: ".",
-                                begin: "▲",
-                                end: "▼",
-                            })
-                            .style(Style::new().fg(theme.hint)),
-                        bar_area,
-                        &mut ScrollbarState::default()
-                            .content_length(max_scroll + 1) // scroll positions: 0..=max_scroll
-                            .viewport_content_length(viewport) // visible rows
-                            .position(*vertical_scroll),
-                    );
-                }
-            }
-            None => todo!(),
+        let viewport = text_area.height as usize;
+        let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
+        *vertical_scroll = (*vertical_scroll).min(max_scroll);
+
+        // Note content title. The date of the journal entry, and how many records It has
+        frame.render_widget(
+            Paragraph::new(
+                Line::from(vec![
+                    Span::styled(
+                        selected.to_string(),
+                        Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!("  ·  {} entries", entry.records.len()),
+                        Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
+                    ),
+                ])
+                .centered(),
+            ),
+            workspace_body_title,
+        );
+
+        // Rendering rows witing margin
+        frame.render_widget(
+            Paragraph::new(entry_inner_rows).scroll((*vertical_scroll as u16, 0)),
+            text_area,
+        );
+
+        if max_scroll > 0 {
+            frame.render_stateful_widget(
+                Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                    .symbols(Set {
+                        track: " ",
+                        thumb: ".",
+                        begin: "▲",
+                        end: "▼",
+                    })
+                    .style(Style::new().fg(theme.hint)),
+                bar_area,
+                &mut ScrollbarState::default()
+                    .content_length(max_scroll + 1) // scroll positions: 0..=max_scroll
+                    .viewport_content_length(viewport) // visible rows
+                    .position(*vertical_scroll),
+            );
         }
     }
 

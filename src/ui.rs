@@ -285,7 +285,7 @@ fn draw_journal(
     .areas(main_area);
 
     let [sidepane_area, content_area] =
-        Layout::horizontal([Constraint::Fill(1), Constraint::Fill(4)])
+        Layout::horizontal([Constraint::Max(25), Constraint::Fill(1)])
             .spacing(Spacing::Overlap(1))
             .areas(journal_area);
 
@@ -391,14 +391,19 @@ fn draw_day_list(
                 let date = date.to_string();
                 let count = day.records.len().to_string();
 
-                let (gutter, style) = match (is_selected, focused) {
-                    (false, _) => (Span::raw(" "), Style::new().fg(theme.text)),
+                let (gutter, style_day, style_count) = match (is_selected, focused) {
+                    (false, _) => (
+                        Span::raw(" "),
+                        Style::new().fg(theme.text),
+                        Style::new().fg(theme.text_dim),
+                    ),
                     (true, true) => (
                         Span::raw(" "),
                         Style::new()
                             .bg(theme.selected_bg)
                             .fg(theme.selected_fg)
                             .add_modifier(Modifier::BOLD),
+                        Style::new().fg(theme.selected_fg),
                     ),
                     (true, false) => (
                         Span::styled("▌", Style::new().fg(theme.border)),
@@ -406,6 +411,7 @@ fn draw_day_list(
                             .bg(theme.selected_bg_dim)
                             .fg(theme.text_dim)
                             .add_modifier(Modifier::BOLD),
+                        Style::new().fg(theme.text_dim),
                     ),
                 };
 
@@ -414,12 +420,12 @@ fn draw_day_list(
 
                 Line::from(vec![
                     gutter,
-                    Span::styled(date, style),
+                    Span::raw(date),
                     Span::raw(" ".repeat(pad)),
-                    Span::styled(count, style),
+                    Span::styled(count, style_count),
                     Span::raw(" "),
                 ])
-                .style(style)
+                .style(style_day)
             })
             .collect::<Vec<_>>(),
     );

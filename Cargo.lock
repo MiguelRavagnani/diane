@@ -458,7 +458,6 @@ dependencies = [
  "crossterm",
  "dirs",
  "envy",
- "iter",
  "ratatui",
  "ratatui-textwrap",
  "regex",
@@ -774,12 +773,6 @@ name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
-
-[[package]]
-name = "iter"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3b2e3c8e73c68d760d0c421025a2b740727f1e807bd4a3d6de2ceb886c5dcb9"
 
 [[package]]
 name = "itertools"

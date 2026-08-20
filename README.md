@@ -19,6 +19,7 @@ Inspired by Twin Peaks.
   - [ ] Default main UI screen
     - [x] Journal
     - [ ] Archive
+  - [ ] Move every glyph and tidy up the usage of literals in ui.rs
 - [x] Refactor the code to reflect more TEA
 - [ ] Usability
   - [ ] Add the possiblity of capturing the journal window

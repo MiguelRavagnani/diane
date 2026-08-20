@@ -21,7 +21,7 @@ use crate::{
     theme::{BackgroundArt, TITLE, Theme},
 };
 
-const CONT: &str = "         ";
+const RECORD_INDENT: &str = "         ";
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
     while app.pane.is_some() {
@@ -76,9 +76,9 @@ fn background(frame: &mut Frame) {
 }
 
 fn draw_main_frame(
-    height: Constraint,
-    width: Constraint,
     frame: &mut Frame,
+    width: Constraint,
+    height: Constraint,
     theme: &Theme,
 ) -> Rect {
     let [area] = Layout::vertical([height])
@@ -100,9 +100,9 @@ fn draw_main_frame(
 
 fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16, theme: &Theme) {
     let main_block_inner = draw_main_frame(
-        Constraint::Length(7),
-        Constraint::Percentage(65),
         frame,
+        Constraint::Percentage(65),
+        Constraint::Length(7),
         theme,
     );
 
@@ -162,7 +162,7 @@ fn draw_capture_poopup(frame: &mut Frame, text: &str, character_index: &u16, the
     frame.set_cursor_position(Position::new(input.x + 3 + character_index, input.y));
 }
 
-fn record_lines(entry: &Day, theme: &Theme, width: u16) -> Vec<Line<'static>> {
+fn record_lines(entry: &Day, width: u16, theme: &Theme) -> Vec<Line<'static>> {
     entry
         .records
         .iter()
@@ -183,8 +183,10 @@ fn record_lines(entry: &Day, theme: &Theme, width: u16) -> Vec<Line<'static>> {
                     .enumerate()
                     .map(|(i, mut line)| {
                         if i > 0 {
-                            line.spans
-                                .insert(0, Span::styled(CONT, Style::new().fg(theme.text_dim)));
+                            line.spans.insert(
+                                0,
+                                Span::styled(RECORD_INDENT, Style::new().fg(theme.text_dim)),
+                            );
                         }
                         line
                     }),
@@ -210,9 +212,9 @@ fn draw_records(
     let [text_area, bar_area] =
         Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
 
-    let wrap_widht = text_area.width.saturating_sub(CONT.chars().count() as u16);
+    let wrap_widht = text_area.width.saturating_sub(RECORD_INDENT.len() as u16);
 
-    let entry_inner_rows = record_lines(entry, theme, wrap_widht);
+    let entry_inner_rows = record_lines(entry, wrap_widht, theme);
     let viewport = text_area.height as usize;
 
     let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
@@ -268,39 +270,30 @@ fn draw_journal(
     selected: &NaiveDate,
     theme: &Theme,
 ) {
-    let main_block_inner_margin = draw_main_frame(
-        Constraint::Percentage(90),
-        Constraint::Percentage(90),
+    let main_area = draw_main_frame(
         frame,
+        Constraint::Percentage(90),
+        Constraint::Percentage(90),
         theme,
     );
 
-    // Area for:
-    //   1 - Header
-    //   2 -Journal/Archive body
-    //   3 - Footer
-    let main_block_rows = Layout::vertical([
+    let [header_area, journal_area, footer_area] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Min(10),
         Constraint::Length(1),
     ])
-    .split(main_block_inner_margin);
+    .areas(main_area);
 
-    frame.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            TITLE,
-            Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
-        ))),
-        main_block_rows[0],
-    );
-
-    let [workspace_sidepane, workspace_body] =
+    let [sidepane_area, content_area] =
         Layout::horizontal([Constraint::Fill(1), Constraint::Fill(4)])
             .spacing(Spacing::Overlap(1))
-            .areas(main_block_rows[1]);
+            .areas(journal_area);
 
     let sidepane_focused = matches!(mode, JournalMode::BrowsingSidepane);
 
+    // I know the compiler will just turn this non-capturing closure into
+    // a fn, but i dont think this is big or specialized enought to
+    // be Its own function rn
     let pane_block = |block, fg| {
         Block::bordered()
             .borders(block)
@@ -309,113 +302,55 @@ fn draw_journal(
             .merge_borders(MergeStrategy::Exact)
     };
 
-    let workspace_sidepane_block = pane_block(
-        Borders::TOP | Borders::BOTTOM | Borders::RIGHT,
-        if sidepane_focused {
-            theme.divider_focus
-        } else {
-            theme.divider
-        },
-    );
-
-    let workspace_body_block = pane_block(
-        Borders::TOP | Borders::BOTTOM | Borders::LEFT,
-        if sidepane_focused {
-            theme.divider
-        } else {
-            theme.divider_focus
-        },
-    );
-
-    if sidepane_focused {
-        frame.render_widget(&workspace_body_block, workspace_body);
-        frame.render_widget(&workspace_sidepane_block, workspace_sidepane);
+    let (sidepane_fg, content_fg) = if sidepane_focused {
+        (theme.divider_focus, theme.divider)
     } else {
-        frame.render_widget(&workspace_sidepane_block, workspace_sidepane);
-        frame.render_widget(&workspace_body_block, workspace_body);
-    }
+        (theme.divider, theme.divider_focus)
+    };
 
-    let workspace_sidepane_block_inner = workspace_sidepane_block.inner(workspace_sidepane);
+    let sidepane_panel_block =
+        pane_block(Borders::TOP | Borders::BOTTOM | Borders::RIGHT, sidepane_fg);
 
-    let [workspace_sidepane_title, _, workspace_sidepane_content] = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Fill(1),
-    ])
-    .areas(workspace_sidepane_block_inner);
+    let content_panel_block =
+        pane_block(Borders::TOP | Borders::BOTTOM | Borders::LEFT, content_fg);
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "Journal",
-            Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
+            TITLE,
+            Style::new().fg(theme.title).add_modifier(Modifier::BOLD),
         ))),
-        workspace_sidepane_title,
+        header_area,
     );
 
-    let daily_records: Vec<(String, String)> = days
-        .iter()
-        .rev()
-        .map(|(date, record)| (date.to_string(), record.records.len().to_string()))
-        .collect();
-
-    // Conditional formating for the slected jounral row. Changes color
-    // based on selected row, and focused pane
-    let selected_paragraph = |date_matched: bool, date: String, count: String| {
-        let w = workspace_sidepane_content.width as usize;
-
-        let (gutter, style) = match (date_matched, sidepane_focused) {
-            (false, _) => (Span::raw(" "), Style::new().fg(theme.text)),
-            (true, true) => (
-                Span::raw(" "),
-                Style::new()
-                    .bg(theme.selected_bg)
-                    .fg(theme.selected_fg)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            (true, false) => (
-                Span::styled("▌", Style::new().fg(theme.border)),
-                Style::new()
-                    .bg(theme.selected_bg_dim)
-                    .fg(theme.text_dim)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        };
-
-        let pad = w.saturating_sub(date.len() + count.len() + 3);
-
-        Line::from(vec![
-            gutter,
-            Span::styled(date, style),
-            Span::raw(" ".repeat(pad)),
-            Span::styled(count, style),
-            Span::raw(" "),
-        ])
-        .style(style)
-    };
-
-    let daily_paragraph = Paragraph::new(
-        daily_records
-            .into_iter()
-            .map(|(date, count)| selected_paragraph(date == selected.to_string(), date, count))
-            .collect::<Vec<_>>(),
-    );
-
-    frame.render_widget(daily_paragraph, workspace_sidepane_content);
+    if sidepane_focused {
+        frame.render_widget(&content_panel_block, content_area);
+        frame.render_widget(&sidepane_panel_block, sidepane_area);
+    } else {
+        frame.render_widget(&sidepane_panel_block, sidepane_area);
+        frame.render_widget(&content_panel_block, content_area);
+    }
 
     if let JournalMode::FocusedRecord { vertical_scroll } = mode
         && let Some(entry) = days.get(selected)
     {
-        let workspace_body_inner = workspace_body.inner(Margin::new(2, 1));
-
         draw_records(
             frame,
-            workspace_body_inner,
+            content_area.inner(Margin::new(2, 1)),
             selected,
             entry,
             vertical_scroll,
             theme,
         );
     }
+
+    draw_day_list(
+        frame,
+        sidepane_panel_block.inner(sidepane_area),
+        selected,
+        days,
+        sidepane_focused,
+        theme,
+    );
 
     let footer_note = if sidepane_focused {
         journal_browsing_sidepane_instructions()
@@ -427,8 +362,76 @@ fn draw_journal(
         Paragraph::new(
             Line::from(Span::styled(footer_note, Style::new().fg(theme.text_dim))).right_aligned(),
         ),
-        main_block_rows[2],
+        footer_area,
     );
+}
+
+fn draw_day_list(
+    frame: &mut Frame,
+    area: Rect,
+    selected: &NaiveDate,
+    days: &BTreeMap<NaiveDate, Day>,
+    focused: bool,
+    theme: &Theme,
+) {
+    let [day_list_title_area, _, day_list_area] = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Fill(1),
+    ])
+    .areas(area);
+
+    // Conditional formating for the slected jounral row. Changes color
+    // based on selected row, and focused pane
+    let day_list = Paragraph::new(
+        days.iter()
+            .rev()
+            .map(|(date, day)| {
+                let is_selected = date == selected;
+                let date = date.to_string();
+                let count = day.records.len().to_string();
+
+                let (gutter, style) = match (is_selected, focused) {
+                    (false, _) => (Span::raw(" "), Style::new().fg(theme.text)),
+                    (true, true) => (
+                        Span::raw(" "),
+                        Style::new()
+                            .bg(theme.selected_bg)
+                            .fg(theme.selected_fg)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    (true, false) => (
+                        Span::styled("▌", Style::new().fg(theme.border)),
+                        Style::new()
+                            .bg(theme.selected_bg_dim)
+                            .fg(theme.text_dim)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                };
+
+                let pad =
+                    (day_list_area.width as usize).saturating_sub(date.len() + count.len() + 3);
+
+                Line::from(vec![
+                    gutter,
+                    Span::styled(date, style),
+                    Span::raw(" ".repeat(pad)),
+                    Span::styled(count, style),
+                    Span::raw(" "),
+                ])
+                .style(style)
+            })
+            .collect::<Vec<_>>(),
+    );
+
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            "Journal",
+            Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
+        ))),
+        day_list_title_area,
+    );
+    frame.render_widget(day_list, day_list_area);
 }
 
 pub fn capture_action(key: KeyEvent) -> Option<Action> {
@@ -468,8 +471,8 @@ pub fn journal_focused_record_action(key: KeyEvent) -> Option<Action> {
     match key.code {
         KeyCode::Left | KeyCode::Char('h') => Some(Action::FocusSidepane),
         KeyCode::Esc => Some(Action::Cancel),
-        KeyCode::Char('j') => Some(Action::ScrollbarNext),
-        KeyCode::Char('k') => Some(Action::ScrollbarPrevious),
+        KeyCode::Down | KeyCode::Char('j') => Some(Action::ScrollbarNext),
+        KeyCode::Up | KeyCode::Char('k') => Some(Action::ScrollbarPrevious),
         _ => None,
     }
 }

@@ -206,9 +206,9 @@ fn draw_records(
     let [title, content] =
         Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
 
-    let [inner] = Layout::horizontal([Constraint::Max(95)])
+    let [inner] = Layout::horizontal([Constraint::Min(90)])
         .flex(Flex::Center)
-        .areas(content.inner(Margin::new(0, 1)));
+        .areas(content.inner(Margin::new(6, 1)));
     let [text_area, bar_area] =
         Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
 
@@ -335,7 +335,7 @@ fn draw_journal(
     {
         draw_records(
             frame,
-            content_area.inner(Margin::new(2, 1)),
+            content_area.inner(Margin::new(0, 1)),
             selected,
             entry,
             vertical_scroll,

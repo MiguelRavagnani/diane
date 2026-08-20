@@ -16,7 +16,7 @@ use ratatui::{
 use ratatui_textwrap::algorithms::textwrap;
 
 use crate::{
-    app::{Action, App, JournalMode, Pane, update},
+    app::{Action, App, Mode, Pane, update},
     entry::Day,
     theme::{BackgroundArt, TITLE, Theme},
 };
@@ -51,12 +51,9 @@ fn draw(frame: &mut Frame, app: &mut App) {
             background(frame);
             draw_capture_poopup(frame, text, character_index, &app.theme);
         }
-        // TODO: This Archive and Journal will sahre a bunch of visual code for now.
-        // Once I get this working, Ill clean it up, promisse to myself
-        Some(Pane::Archive(_)) => todo!("archive view"),
-        Some(Pane::Journal { selected, mode }) => {
+        Some(Pane::Library { selected, mode }) => {
             background(frame);
-            draw_journal(frame, &app.days, mode, selected, &app.theme);
+            draw_library(frame, &app.days, mode, selected, &app.theme);
         }
         None => {}
     }
@@ -263,10 +260,10 @@ fn draw_records(
     }
 }
 
-fn draw_journal(
+fn draw_library(
     frame: &mut Frame,
     days: &BTreeMap<NaiveDate, Day>,
-    mode: &mut JournalMode,
+    mode: &mut Mode,
     selected: &NaiveDate,
     theme: &Theme,
 ) {
@@ -289,7 +286,7 @@ fn draw_journal(
             .spacing(Spacing::Overlap(1))
             .areas(journal_area);
 
-    let sidepane_focused = matches!(mode, JournalMode::BrowsingSidepane);
+    let sidepane_focused = matches!(mode, Mode::BrowsingJournalSidepane);
 
     // I know the compiler will just turn this non-capturing closure into
     // a fn, but i dont think this is big or specialized enought to
@@ -330,7 +327,7 @@ fn draw_journal(
         frame.render_widget(&content_panel_block, content_area);
     }
 
-    if let JournalMode::FocusedRecord { vertical_scroll } = mode
+    if let Mode::FocusedJournalRecord { vertical_scroll } = mode
         && let Some(entry) = days.get(selected)
     {
         draw_records(
@@ -479,14 +476,6 @@ pub fn journal_focused_record_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Esc => Some(Action::Cancel),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::ScrollbarNext),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::ScrollbarPrevious),
-        _ => None,
-    }
-}
-
-pub fn journal_capturing_action(key: KeyEvent) -> Option<Action> {
-    match key.code {
-        KeyCode::Left | KeyCode::Char('h') => Some(Action::FocusSidepane),
-        KeyCode::Esc => Some(Action::Cancel),
         _ => None,
     }
 }

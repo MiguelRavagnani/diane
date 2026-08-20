@@ -8,41 +8,27 @@ use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
 use crate::theme::Theme;
-use crate::ui::{
-    capture_action, journal_browsing_sidepane_action, journal_capturing_action,
-    journal_focused_record_action,
-};
-
-// NOTE: Not sure if this should stay
-// pub enum CurrentlyEditing {
-//     ArchiveEntryBody,
-//     ArchiveEntryTitle,
-// }
+use crate::ui::{capture_action, journal_browsing_sidepane_action, journal_focused_record_action};
 
 pub enum Pane {
-    Archive(ArchiveMode),
-    Journal {
-        selected: NaiveDate,
-        mode: JournalMode,
-    },
-    Capture {
+    Library { selected: NaiveDate, mode: Mode },
+    Capture { text: String, character_index: u16 },
+}
+
+pub enum Mode {
+    BrowsingArchive,
+    BrowsingJournalSidepane,
+    CapturingJournal {
         text: String,
         character_index: u16,
     },
-}
-
-pub enum JournalMode {
-    BrowsingSidepane,
-    FocusedRecord { vertical_scroll: usize },
-    Capturing { text: String, character_index: u16 },
-}
-
-pub enum ArchiveMode {
-    Browsing,
-    EditingPair {
+    EditingArchivePair {
         key: String,
         value: String,
         field: Field,
+    },
+    FocusedJournalRecord {
+        vertical_scroll: usize,
     },
 }
 
@@ -67,8 +53,8 @@ pub enum Action {
 pub fn update(app: &mut App, action: Action) -> bool {
     match action {
         Action::ScrollbarNext => {
-            if let Some(Pane::Journal {
-                mode: JournalMode::FocusedRecord { vertical_scroll },
+            if let Some(Pane::Library {
+                mode: Mode::FocusedJournalRecord { vertical_scroll },
                 ..
             }) = &mut app.pane
             {
@@ -77,8 +63,8 @@ pub fn update(app: &mut App, action: Action) -> bool {
             false
         }
         Action::ScrollbarPrevious => {
-            if let Some(Pane::Journal {
-                mode: JournalMode::FocusedRecord { vertical_scroll },
+            if let Some(Pane::Library {
+                mode: Mode::FocusedJournalRecord { vertical_scroll },
                 ..
             }) = &mut app.pane
             {
@@ -87,19 +73,19 @@ pub fn update(app: &mut App, action: Action) -> bool {
             false
         }
         Action::FocusRecord => {
-            if let Some(Pane::Journal { mode, .. }) = &mut app.pane {
-                *mode = JournalMode::FocusedRecord { vertical_scroll: 0 }
+            if let Some(Pane::Library { mode, .. }) = &mut app.pane {
+                *mode = Mode::FocusedJournalRecord { vertical_scroll: 0 }
             }
             false
         }
         Action::FocusSidepane => {
-            if let Some(Pane::Journal { selected: _, mode }) = &mut app.pane {
-                *mode = JournalMode::BrowsingSidepane
+            if let Some(Pane::Library { selected: _, mode }) = &mut app.pane {
+                *mode = Mode::BrowsingJournalSidepane
             }
             false
         }
         Action::PreviousDay => {
-            if let Some(Pane::Journal { selected, mode: _ }) = &mut app.pane
+            if let Some(Pane::Library { selected, mode: _ }) = &mut app.pane
                 && let Some((&date, _)) = app.days.range(..*selected).next_back()
             {
                 *selected = date;
@@ -107,7 +93,7 @@ pub fn update(app: &mut App, action: Action) -> bool {
             false
         }
         Action::NextDay => {
-            if let Some(Pane::Journal { selected, mode: _ }) = &mut app.pane
+            if let Some(Pane::Library { selected, mode: _ }) = &mut app.pane
                 && let Some((&date, _)) = app.days.range((Excluded(*selected), Unbounded)).next()
             {
                 *selected = date;
@@ -179,9 +165,9 @@ impl App {
             days: BTreeMap::new(),
             notes: Vec::new(),
             note_cursor: 0,
-            pane: Some(Pane::Journal {
+            pane: Some(Pane::Library {
                 selected: Local::now().date_naive(),
-                mode: JournalMode::BrowsingSidepane,
+                mode: Mode::BrowsingJournalSidepane,
             }),
             should_quit: false,
             theme: Theme::named(&config.theme),
@@ -191,26 +177,33 @@ impl App {
     pub fn to_action(&self, key: KeyEvent) -> Option<Action> {
         self.pane.as_ref().and_then(|pane| match pane {
             Pane::Capture { .. } => capture_action(key),
-            Pane::Archive(_) => todo!("Archive to_action"),
-            Pane::Journal {
+            Pane::Library {
                 selected: _,
-                mode: JournalMode::Capturing { .. },
-            } => journal_capturing_action(key),
-            Pane::Journal {
+                mode: Mode::CapturingJournal { .. },
+            } => todo!("Journal Capturing to_action"),
+            Pane::Library {
                 selected: _,
-                mode: JournalMode::BrowsingSidepane,
+                mode: Mode::BrowsingJournalSidepane,
             } => journal_browsing_sidepane_action(key),
-            Pane::Journal {
+            Pane::Library {
                 selected: _,
-                mode: JournalMode::FocusedRecord { .. },
+                mode: Mode::FocusedJournalRecord { .. },
             } => journal_focused_record_action(key),
+            Pane::Library {
+                selected: _,
+                mode: Mode::BrowsingArchive,
+            } => todo!(),
+            Pane::Library {
+                selected: _,
+                mode: Mode::EditingArchivePair { .. },
+            } => todo!(),
         })
     }
 
     pub fn retrieve_journal(&mut self) -> std::io::Result<()> {
         self.days = self.vault.recover_journal_records()?;
 
-        if let Some(Pane::Journal { selected, .. }) = &mut self.pane
+        if let Some(Pane::Library { selected, .. }) = &mut self.pane
             && let Some((&date, _)) = self.days.range(..=*selected).next_back()
         {
             *selected = date;

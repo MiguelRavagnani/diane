@@ -1,7 +1,7 @@
 use chrono::Local;
 use clap::Parser;
 
-use crate::app::{JournalMode, Pane};
+use crate::app::{Mode, Pane};
 
 #[derive(Parser)]
 #[command(name = "diane")]
@@ -31,9 +31,9 @@ impl Cli {
                 character_index: 0,
             }
         } else {
-            Pane::Journal {
+            Pane::Library {
                 selected: Local::now().date_naive(),
-                mode: JournalMode::BrowsingSidepane,
+                mode: Mode::BrowsingJournalSidepane,
             }
         }
     }

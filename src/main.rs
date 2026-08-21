@@ -27,6 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         None => {
             app.pane = Some(input.initial_pane());
             app.retrieve_journal()?;
+            app.retrieve_archive()?;
             let mut terminal = ratatui::init();
             run(&mut terminal, &mut app)?;
             ratatui::restore();

@@ -17,7 +17,7 @@ use ratatui_textwrap::algorithms::textwrap;
 
 use crate::{
     app::{Action, App, Focus, Mode, Window, update},
-    entry::Day,
+    entry::{Day, Note},
     theme::{BackgroundArt, TITLE, Theme},
 };
 
@@ -63,6 +63,7 @@ fn draw(frame: &mut Frame, app: &mut App) {
             draw_library(
                 frame,
                 &app.days,
+                &app.notes,
                 mode,
                 focus,
                 sidepane_scroll,
@@ -281,6 +282,7 @@ fn draw_records(
 fn draw_library(
     frame: &mut Frame,
     days: &BTreeMap<NaiveDate, Day>,
+    notes: &Vec<Note>,
     mode: &mut Mode,
     focus: &Focus,
     _sidepane_scroll: &mut usize,
@@ -403,8 +405,9 @@ fn draw_library(
     draw_note_list(
         frame,
         archive_sidepane_panel_block.inner(archive_sidepane_area),
+        notes,
         selected_note,
-        journal_sidepane_focused,
+        archive_sidepane_focused,
         theme,
     );
 
@@ -507,13 +510,50 @@ fn draw_day_list(
     frame.render_widget(day_list, day_list_area);
 }
 
-fn draw_note_list(frame: &mut Frame, area: Rect, selected: &usize, _focused: bool, theme: &Theme) {
-    let [notes_title_area, _, _notes_area] = Layout::vertical([
+fn draw_note_list(
+    frame: &mut Frame,
+    area: Rect,
+    notes: &[Note],
+    selected: &usize,
+    focused: bool,
+    theme: &Theme,
+) {
+    let [notes_title_area, _, notes_area] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Fill(1),
     ])
     .areas(area);
+
+    let note_list = Paragraph::new(
+        notes
+            .iter()
+            .enumerate()
+            .map(|(index, note)| {
+                let is_selected = index == *selected;
+                let title = note.title.clone();
+                let (gutter, style_note) = match (is_selected, focused) {
+                    (false, _) => (Span::raw(" "), Style::new().fg(theme.text)),
+                    (true, true) => (
+                        Span::raw(" "),
+                        Style::new()
+                            .bg(theme.selected_bg)
+                            .fg(theme.selected_fg)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    (true, false) => (
+                        Span::styled("▌", Style::new().fg(theme.border)),
+                        Style::new()
+                            .bg(theme.selected_bg_dim)
+                            .fg(theme.text_dim)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                };
+
+                Line::from(vec![gutter, Span::raw(title), Span::raw(" ")]).style(style_note)
+            })
+            .collect::<Vec<_>>(),
+    );
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
@@ -522,6 +562,7 @@ fn draw_note_list(frame: &mut Frame, area: Rect, selected: &usize, _focused: boo
         ))),
         notes_title_area,
     );
+    frame.render_widget(note_list, notes_area);
 }
 
 pub fn capture_action(key: KeyEvent) -> Option<Action> {

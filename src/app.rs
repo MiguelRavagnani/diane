@@ -215,6 +215,12 @@ impl App {
         })
     }
 
+    pub fn retrieve_archive(&mut self) -> std::io::Result<()> {
+        self.notes = self.vault.recover_archive_notes()?;
+
+        Ok(())
+    }
+
     pub fn retrieve_journal(&mut self) -> std::io::Result<()> {
         self.days = self.vault.recover_journal_records()?;
 

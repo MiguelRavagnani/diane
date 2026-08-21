@@ -13,6 +13,7 @@ use crate::ui::{capture_action, journal_browsing_sidepane_action, journal_focuse
 pub enum Window {
     Library {
         selected_entry: NaiveDate,
+        selected_note: usize,
         mode: Mode,
         focus: Focus,
         sidepane_scroll: usize,
@@ -183,6 +184,7 @@ impl App {
             note_cursor: 0,
             pane: Some(Window::Library {
                 selected_entry: Local::now().date_naive(),
+                selected_note: 0,
                 mode: Mode::Journal,
                 focus: Focus::Sidepane,
                 content_scroll: 0,

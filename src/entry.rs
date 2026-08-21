@@ -50,6 +50,54 @@ impl Note {
     }
 }
 
+impl TryFrom<String> for Note {
+    type Error = &'static str;
+
+    fn try_from(string: String) -> Result<Self, Self::Error> {
+        let rest = string.strip_prefix("---\n").ok_or("missing formatter")?;
+        let (front, body) = rest.split_once("\n---\n").ok_or("unterminated formatter")?;
+
+        let mut title = None;
+        let mut created = None;
+        let mut updated = None;
+
+        for line in front.lines() {
+            let Some((key, value)) = line.split_once(": ") else {
+                continue;
+            };
+            match key {
+                "title" => title = Some(value.to_string()),
+                "created" => {
+                    created = Some(
+                        NaiveDate::parse_from_str(value, "%Y-%m-%d")
+                            .map_err(|_| "bad created date")?,
+                    )
+                }
+                "updated" => {
+                    updated = Some(
+                        NaiveDate::parse_from_str(value, "%Y-%m-%d")
+                            .map_err(|_| "bad updated date")?,
+                    )
+                }
+                _ => {}
+            }
+        }
+
+        let title = title.ok_or("missing title")?;
+        let created = created.ok_or("missing created")?;
+        let updated = updated.ok_or("missing updated")?;
+        let body = body.to_owned();
+
+        Ok(Note {
+            slug: slugify(&title),
+            title,
+            created,
+            updated,
+            body,
+        })
+    }
+}
+
 fn slugify(title: &str) -> String {
     title
         .to_lowercase()
@@ -87,7 +135,7 @@ impl TryFrom<String> for Record {
             }
         }
 
-        return Err("Unable to convert string to record");
+        Err("Unable to convert string to record")
     }
 }
 

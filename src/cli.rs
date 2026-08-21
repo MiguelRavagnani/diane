@@ -33,6 +33,7 @@ impl Cli {
         } else {
             Window::Library {
                 selected_entry: Local::now().date_naive(),
+                selected_note: 0,
                 mode: Mode::Journal,
                 focus: Focus::Sidepane,
                 content_scroll: 0,

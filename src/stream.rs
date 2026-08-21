@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
 
@@ -22,6 +22,31 @@ impl Vault {
             journal_path: Path::new(&config.diane_root).join(JOURNAL_PATH),
             archive_path: Path::new(&config.diane_root).join(ARCHIVE_PATH),
         }
+    }
+
+    pub fn recover_archive_notes(&self) -> io::Result<Vec<Note>> {
+        // TODO: Propper error return here. might not want an error if empty. Same for journal
+        let archive_notes = fs::read_dir(&self.archive_path)?;
+        let mut notes: Vec<Note> = Vec::new();
+
+        for note in archive_notes {
+            let note = note?;
+            let note_path = note.path();
+
+            if note_path.is_file() {
+                let note_contet = File::open(note_path)?;
+                let mut reader = BufReader::new(note_contet);
+                let mut note_content_string = String::new();
+                reader.read_to_string(&mut note_content_string)?;
+
+                let note_parsed =
+                    Note::try_from(note_content_string).expect("failed to parse note");
+
+                notes.push(note_parsed);
+            }
+        }
+
+        Ok(notes)
     }
 
     pub fn recover_journal_records(&self) -> io::Result<BTreeMap<NaiveDate, Day>> {

@@ -53,6 +53,7 @@ fn draw(frame: &mut Frame, app: &mut App) {
         }
         Some(Window::Library {
             selected_entry,
+            selected_note,
             mode,
             focus,
             sidepane_scroll,
@@ -67,6 +68,7 @@ fn draw(frame: &mut Frame, app: &mut App) {
                 sidepane_scroll,
                 content_scroll,
                 selected_entry,
+                selected_note,
                 &app.theme,
             );
         }
@@ -284,6 +286,7 @@ fn draw_library(
     _sidepane_scroll: &mut usize,
     content_scroll: &mut usize,
     selected_entry: &NaiveDate,
+    selected_note: &mut usize,
     theme: &Theme,
 ) {
     let main_area = draw_main_frame(
@@ -400,7 +403,7 @@ fn draw_library(
     draw_note_list(
         frame,
         archive_sidepane_panel_block.inner(archive_sidepane_area),
-        selected_entry,
+        selected_note,
         journal_sidepane_focused,
         theme,
     );
@@ -504,13 +507,7 @@ fn draw_day_list(
     frame.render_widget(day_list, day_list_area);
 }
 
-fn draw_note_list(
-    frame: &mut Frame,
-    area: Rect,
-    _selected: &NaiveDate,
-    _focused: bool,
-    theme: &Theme,
-) {
+fn draw_note_list(frame: &mut Frame, area: Rect, selected: &usize, _focused: bool, theme: &Theme) {
     let [notes_title_area, _, _notes_area] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),

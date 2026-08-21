@@ -8,7 +8,10 @@ use crate::config::Config;
 use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
 use crate::theme::Theme;
-use crate::ui::{capture_action, journal_browsing_sidepane_action, journal_focused_record_action};
+use crate::ui::{
+    archive_browsing_sidepane_action, capture_action, journal_browsing_sidepane_action,
+    journal_focused_record_action,
+};
 
 pub enum Window {
     Library {
@@ -44,6 +47,7 @@ pub enum Action {
     InsertChar(char),
     NextDay,
     ToggleFocus,
+    ToggleMode,
     ScrollbarNext,
     ScrollbarPrevious,
     PreviousDay,
@@ -83,6 +87,15 @@ pub fn update(app: &mut App, action: Action) -> bool {
                     Focus::Sidepane => sidepane_scroll,
                 };
                 *scroll = scroll.saturating_sub(1);
+            }
+            false
+        }
+        Action::ToggleMode => {
+            if let Some(Window::Library { mode, .. }) = &mut app.pane {
+                *mode = match mode {
+                    Mode::Archive => Mode::Journal,
+                    Mode::Journal => Mode::Archive,
+                }
             }
             false
         }
@@ -211,7 +224,7 @@ impl App {
             Window::Library {
                 mode: Mode::Archive,
                 ..
-            } => todo!(),
+            } => archive_browsing_sidepane_action(key),
         })
     }
 

@@ -282,7 +282,7 @@ fn draw_records(
 fn draw_library(
     frame: &mut Frame,
     days: &BTreeMap<NaiveDate, Day>,
-    notes: &Vec<Note>,
+    notes: &[Note],
     mode: &mut Mode,
     focus: &Focus,
     _sidepane_scroll: &mut usize,
@@ -591,8 +591,17 @@ fn journal_capturing_instructions() -> &'static str {
 pub fn journal_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
     match key.code {
         KeyCode::Right | KeyCode::Char('l') => Some(Action::ToggleFocus),
+        KeyCode::Char('J') => Some(Action::ToggleMode),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
+        KeyCode::Esc => Some(Action::Cancel),
+        _ => None,
+    }
+}
+
+pub fn archive_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
+    match key.code {
+        KeyCode::Char('K') => Some(Action::ToggleMode),
         KeyCode::Esc => Some(Action::Cancel),
         _ => None,
     }

@@ -1,7 +1,7 @@
 use chrono::Local;
 use clap::Parser;
 
-use crate::app::{Mode, Pane};
+use crate::app::{Focus, Mode, Window};
 
 #[derive(Parser)]
 #[command(name = "diane")]
@@ -24,16 +24,19 @@ fn validade_text(s: &str) -> Result<String, String> {
 }
 
 impl Cli {
-    pub fn initial_pane(&self) -> Pane {
+    pub fn initial_pane(&self) -> Window {
         if self.capture {
-            Pane::Capture {
+            Window::Capture {
                 text: String::new(),
                 character_index: 0,
             }
         } else {
-            Pane::Library {
-                selected: Local::now().date_naive(),
-                mode: Mode::BrowsingJournalSidepane,
+            Window::Library {
+                selected_entry: Local::now().date_naive(),
+                mode: Mode::Journal,
+                focus: Focus::Sidepane,
+                content_scroll: 0,
+                sidepane_scroll: 0,
             }
         }
     }

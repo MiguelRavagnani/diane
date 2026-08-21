@@ -16,7 +16,7 @@ use ratatui::{
 use ratatui_textwrap::algorithms::textwrap;
 
 use crate::{
-    app::{Action, App, Mode, Pane, update},
+    app::{Action, App, Focus, Mode, Window, update},
     entry::Day,
     theme::{BackgroundArt, TITLE, Theme},
 };
@@ -44,16 +44,31 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::R
 
 fn draw(frame: &mut Frame, app: &mut App) {
     match &mut app.pane {
-        Some(Pane::Capture {
+        Some(Window::Capture {
             text,
             character_index,
         }) => {
             background(frame);
             draw_capture_poopup(frame, text, character_index, &app.theme);
         }
-        Some(Pane::Library { selected, mode }) => {
+        Some(Window::Library {
+            selected_entry,
+            mode,
+            focus,
+            sidepane_scroll,
+            content_scroll,
+        }) => {
             background(frame);
-            draw_library(frame, &app.days, mode, selected, &app.theme);
+            draw_library(
+                frame,
+                &app.days,
+                mode,
+                focus,
+                sidepane_scroll,
+                content_scroll,
+                selected_entry,
+                &app.theme,
+            );
         }
         None => {}
     }
@@ -260,11 +275,15 @@ fn draw_records(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_library(
     frame: &mut Frame,
     days: &BTreeMap<NaiveDate, Day>,
     mode: &mut Mode,
-    selected: &NaiveDate,
+    focus: &Focus,
+    _sidepane_scroll: &mut usize,
+    content_scroll: &mut usize,
+    selected_entry: &NaiveDate,
     theme: &Theme,
 ) {
     let main_area = draw_main_frame(
@@ -274,7 +293,7 @@ fn draw_library(
         theme,
     );
 
-    let [header_area, journal_area, footer_area] = Layout::vertical([
+    let [header_area, library_area, footer_area] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Min(10),
         Constraint::Length(1),
@@ -284,9 +303,30 @@ fn draw_library(
     let [sidepane_area, content_area] =
         Layout::horizontal([Constraint::Max(25), Constraint::Fill(1)])
             .spacing(Spacing::Overlap(1))
-            .areas(journal_area);
+            .areas(library_area);
 
-    let sidepane_focused = matches!(mode, Mode::BrowsingJournalSidepane);
+    let [journal_sidepane_area, archive_sidepane_area] =
+        Layout::vertical([Constraint::Fill(1), Constraint::Fill(1)])
+            .spacing(Spacing::Overlap(1))
+            .areas(sidepane_area);
+
+    let journal_sidepane_focused =
+        matches!(mode, Mode::Journal) && matches!(focus, Focus::Sidepane);
+    let archive_sidepane_focused =
+        matches!(mode, Mode::Archive) && matches!(focus, Focus::Sidepane);
+    let content_focused = matches!(focus, Focus::Content);
+
+    let divider = |focused| {
+        if focused {
+            theme.divider_focus
+        } else {
+            theme.divider
+        }
+    };
+
+    let journal_divider = divider(journal_sidepane_focused);
+    let archive_divider = divider(archive_sidepane_focused);
+    let content_divider = divider(content_focused);
 
     // I know the compiler will just turn this non-capturing closure into
     // a fn, but i dont think this is big or specialized enought to
@@ -299,17 +339,42 @@ fn draw_library(
             .merge_borders(MergeStrategy::Exact)
     };
 
-    let (sidepane_fg, content_fg) = if sidepane_focused {
-        (theme.divider_focus, theme.divider)
-    } else {
-        (theme.divider, theme.divider_focus)
-    };
+    let journal_sidepane_panel_block = pane_block(
+        Borders::TOP | Borders::BOTTOM | Borders::RIGHT,
+        journal_divider,
+    );
 
-    let sidepane_panel_block =
-        pane_block(Borders::TOP | Borders::BOTTOM | Borders::RIGHT, sidepane_fg);
+    let archive_sidepane_panel_block = pane_block(
+        Borders::TOP | Borders::BOTTOM | Borders::RIGHT,
+        archive_divider,
+    );
 
-    let content_panel_block =
-        pane_block(Borders::TOP | Borders::BOTTOM | Borders::LEFT, content_fg);
+    let content_panel_block = pane_block(
+        Borders::TOP | Borders::BOTTOM | Borders::LEFT,
+        content_divider,
+    );
+
+    // Encoding the data instead of branching. This ensures correct
+    // rendering order, by sorting the FOCUSED pannel
+    let mut panes = [
+        (
+            &journal_sidepane_panel_block,
+            journal_sidepane_area,
+            matches!(focus, Focus::Sidepane) && matches!(mode, Mode::Journal),
+        ),
+        (
+            &archive_sidepane_panel_block,
+            archive_sidepane_area,
+            matches!(focus, Focus::Sidepane) && matches!(mode, Mode::Archive),
+        ),
+        (
+            &content_panel_block,
+            content_area,
+            matches!(focus, Focus::Content),
+        ),
+    ];
+
+    panes.sort_by_key(|(_, _, focused)| *focused);
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
@@ -319,37 +384,39 @@ fn draw_library(
         header_area,
     );
 
-    if sidepane_focused {
-        frame.render_widget(&content_panel_block, content_area);
-        frame.render_widget(&sidepane_panel_block, sidepane_area);
-    } else {
-        frame.render_widget(&sidepane_panel_block, sidepane_area);
-        frame.render_widget(&content_panel_block, content_area);
-    }
-
-    if let Mode::FocusedJournalRecord { vertical_scroll } = mode
-        && let Some(entry) = days.get(selected)
-    {
-        draw_records(
-            frame,
-            content_area.inner(Margin::new(0, 1)),
-            selected,
-            entry,
-            vertical_scroll,
-            theme,
-        );
+    for (block, area, _) in panes {
+        frame.render_widget(block, area);
     }
 
     draw_day_list(
         frame,
-        sidepane_panel_block.inner(sidepane_area),
-        selected,
+        journal_sidepane_panel_block.inner(journal_sidepane_area),
+        selected_entry,
         days,
-        sidepane_focused,
+        journal_sidepane_focused,
         theme,
     );
 
-    let footer_note = if sidepane_focused {
+    draw_note_list(
+        frame,
+        archive_sidepane_panel_block.inner(archive_sidepane_area),
+        selected_entry,
+        journal_sidepane_focused,
+        theme,
+    );
+
+    if content_focused && let Some(entry) = days.get(selected_entry) {
+        draw_records(
+            frame,
+            content_area.inner(Margin::new(0, 1)),
+            selected_entry,
+            entry,
+            content_scroll,
+            theme,
+        );
+    }
+
+    let footer_note = if journal_sidepane_focused {
         journal_browsing_sidepane_instructions()
     } else {
         journal_focused_record_instructions()
@@ -437,6 +504,29 @@ fn draw_day_list(
     frame.render_widget(day_list, day_list_area);
 }
 
+fn draw_note_list(
+    frame: &mut Frame,
+    area: Rect,
+    _selected: &NaiveDate,
+    _focused: bool,
+    theme: &Theme,
+) {
+    let [notes_title_area, _, _notes_area] = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Fill(1),
+    ])
+    .areas(area);
+
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(
+            "Archive",
+            Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD),
+        ))),
+        notes_title_area,
+    );
+}
+
 pub fn capture_action(key: KeyEvent) -> Option<Action> {
     match key.code {
         KeyCode::Char(c) => Some(Action::InsertChar(c)),
@@ -462,7 +552,7 @@ fn journal_capturing_instructions() -> &'static str {
 
 pub fn journal_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
     match key.code {
-        KeyCode::Right | KeyCode::Char('l') => Some(Action::FocusRecord),
+        KeyCode::Right | KeyCode::Char('l') => Some(Action::ToggleFocus),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
         KeyCode::Esc => Some(Action::Cancel),
@@ -472,7 +562,7 @@ pub fn journal_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
 
 pub fn journal_focused_record_action(key: KeyEvent) -> Option<Action> {
     match key.code {
-        KeyCode::Left | KeyCode::Char('h') => Some(Action::FocusSidepane),
+        KeyCode::Left | KeyCode::Char('h') => Some(Action::ToggleFocus),
         KeyCode::Esc => Some(Action::Cancel),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::ScrollbarNext),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::ScrollbarPrevious),

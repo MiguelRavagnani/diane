@@ -9,8 +9,8 @@ use crate::entry::{Day, Note, Record};
 use crate::stream::Vault;
 use crate::theme::Theme;
 use crate::ui::{
-    archive_browsing_sidepane_action, capture_action, journal_browsing_sidepane_action,
-    journal_focused_record_action,
+    archive_browsing_sidepane_action, archive_focused_record_action, capture_action,
+    journal_browsing_sidepane_action, journal_focused_record_action,
 };
 
 pub enum Window {
@@ -245,8 +245,14 @@ impl App {
             } => journal_focused_record_action(key),
             Window::Library {
                 mode: Mode::Archive,
+                focus: Focus::Sidepane,
                 ..
             } => archive_browsing_sidepane_action(key),
+            Window::Library {
+                mode: Mode::Archive,
+                focus: Focus::Content,
+                ..
+            } => archive_focused_record_action(key),
         })
     }
 

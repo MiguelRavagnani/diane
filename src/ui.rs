@@ -211,6 +211,38 @@ fn record_lines(entry: &Day, width: u16, theme: &Theme) -> Vec<Line<'static>> {
         .collect()
 }
 
+fn render_frontmatter(frame: &mut Frame, text: &str, style: &Style, area: Rect) {
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![Span::styled(text, *style)]).left_aligned()),
+        area,
+    );
+}
+
+fn draw_note(frame: &mut Frame, area: Rect, note: &Note, _scroll: &mut usize, theme: &Theme) {
+    let [inner] = Layout::horizontal([Constraint::Min(90)])
+        .flex(Flex::Center)
+        .areas(area.inner(Margin::new(6, 1)));
+
+    let [frontmatter, content] =
+        Layout::vertical([Constraint::Length(5), Constraint::Fill(1)]).areas(inner);
+
+    let [
+        frontmatter_start,
+        title,
+        created_at,
+        updated_at,
+        frontmatter_end,
+    ] = Layout::vertical(Constraint::from_lengths([1, 1, 1, 1, 1])).areas(frontmatter);
+
+    let divider_style = Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD);
+
+    render_frontmatter(frame, "---", &divider_style, frontmatter_start);
+    render_frontmatter(frame, &note.title, &divider_style, title);
+    render_frontmatter(frame, &note.created.to_string(), &divider_style, created_at);
+    render_frontmatter(frame, &note.updated.to_string(), &divider_style, updated_at);
+    render_frontmatter(frame, "---", &divider_style, frontmatter_end);
+}
+
 fn draw_records(
     frame: &mut Frame,
     area: Rect,
@@ -412,17 +444,31 @@ fn draw_library(
         theme,
     );
 
-    if content_focused && let Some(entry) = days.get(selected_entry) {
-        draw_records(
-            frame,
-            content_area.inner(Margin::new(0, 1)),
-            selected_entry,
-            entry,
-            content_scroll,
-            theme,
-        );
+    if content_focused {
+        match mode {
+            Mode::Journal => {
+                if let Some(entry) = days.get(selected_entry) {
+                    draw_records(
+                        frame,
+                        content_area.inner(Margin::new(0, 1)),
+                        selected_entry,
+                        entry,
+                        content_scroll,
+                        theme,
+                    );
+                }
+            }
+            Mode::Archive => {
+                draw_note(
+                    frame,
+                    content_area.inner(Margin::new(0, 1)),
+                    &notes[*selected_note],
+                    content_scroll,
+                    theme,
+                );
+            }
+        }
     }
-
     let footer_note = if journal_sidepane_focused {
         journal_browsing_sidepane_instructions()
     } else {
@@ -608,6 +654,7 @@ pub fn journal_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
 
 pub fn archive_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
     match (key.code, key.modifiers) {
+        (KeyCode::Right | KeyCode::Char('l'), _) => Some(Action::ToggleFocus),
         (KeyCode::Down | KeyCode::Char('j'), KeyModifiers::NONE) => {
             Some(Action::PreviousArchiveNote)
         }
@@ -624,6 +671,14 @@ pub fn journal_focused_record_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Esc => Some(Action::Cancel),
         KeyCode::Down | KeyCode::Char('j') => Some(Action::ScrollbarNext),
         KeyCode::Up | KeyCode::Char('k') => Some(Action::ScrollbarPrevious),
+        _ => None,
+    }
+}
+
+pub fn archive_focused_record_action(key: KeyEvent) -> Option<Action> {
+    match key.code {
+        KeyCode::Left | KeyCode::Char('h') => Some(Action::ToggleFocus),
+        KeyCode::Esc => Some(Action::Cancel),
         _ => None,
     }
 }

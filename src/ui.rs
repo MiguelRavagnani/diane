@@ -552,7 +552,10 @@ fn draw_note_list(
                     ),
                 };
 
-                Line::from(vec![gutter, Span::raw(title), Span::raw(" ")]).style(style_note)
+                let pad = (notes_area.width as usize).saturating_sub(title.len() + 2);
+
+                Line::from(vec![gutter, Span::raw(title), Span::raw(" ".repeat(pad))])
+                    .style(style_note)
             })
             .collect::<Vec<_>>(),
     );

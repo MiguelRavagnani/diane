@@ -44,16 +44,18 @@ pub enum Field {
 }
 
 pub enum Action {
-    InsertChar(char),
-    NextDay,
-    ToggleFocus,
-    ToggleMode,
-    ScrollbarNext,
-    ScrollbarPrevious,
-    PreviousDay,
     Backspace,
     Cancel,
     CommitCapture,
+    InsertChar(char),
+    NextJournalEntry,
+    NextArchiveNote,
+    PreviousJournalEntry,
+    PreviousArchiveNote,
+    ScrollbarNext,
+    ScrollbarPrevious,
+    ToggleFocus,
+    ToggleMode,
 }
 
 pub fn update(app: &mut App, action: Action) -> bool {
@@ -108,7 +110,7 @@ pub fn update(app: &mut App, action: Action) -> bool {
             }
             false
         }
-        Action::PreviousDay => {
+        Action::PreviousJournalEntry => {
             if let Some(Window::Library {
                 selected_entry: selected,
                 ..
@@ -119,7 +121,7 @@ pub fn update(app: &mut App, action: Action) -> bool {
             }
             false
         }
-        Action::NextDay => {
+        Action::NextJournalEntry => {
             if let Some(Window::Library {
                 selected_entry: selected,
                 ..
@@ -127,6 +129,26 @@ pub fn update(app: &mut App, action: Action) -> bool {
                 && let Some((&date, _)) = app.days.range((Excluded(*selected), Unbounded)).next()
             {
                 *selected = date;
+            }
+            false
+        }
+        Action::PreviousArchiveNote => {
+            if let Some(Window::Library {
+                selected_note: selected,
+                ..
+            }) = &mut app.pane
+            {
+                *selected = selected.saturating_sub(1);
+            }
+            false
+        }
+        Action::NextArchiveNote => {
+            if let Some(Window::Library {
+                selected_note: selected,
+                ..
+            }) = &mut app.pane
+            {
+                *selected = (*selected + 1).min(app.notes.len().saturating_sub(1));
             }
             false
         }
@@ -230,6 +252,13 @@ impl App {
 
     pub fn retrieve_archive(&mut self) -> std::io::Result<()> {
         self.notes = self.vault.recover_archive_notes()?;
+        if let Some(Window::Library {
+            selected_note: selected,
+            ..
+        }) = &mut self.pane
+        {
+            *selected = self.notes.len().saturating_sub(1);
+        }
 
         Ok(())
     }

@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, iter};
 
 use chrono::NaiveDate;
+use crossterm::event::KeyModifiers;
 use ratatui::{
     Frame,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
@@ -529,6 +530,7 @@ fn draw_note_list(
         notes
             .iter()
             .enumerate()
+            .rev()
             .map(|(index, note)| {
                 let is_selected = index == *selected;
                 let title = note.title.clone();
@@ -589,20 +591,26 @@ fn journal_capturing_instructions() -> &'static str {
 }
 
 pub fn journal_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
-    match key.code {
-        KeyCode::Right | KeyCode::Char('l') => Some(Action::ToggleFocus),
-        KeyCode::Char('J') => Some(Action::ToggleMode),
-        KeyCode::Down | KeyCode::Char('j') => Some(Action::PreviousDay),
-        KeyCode::Up | KeyCode::Char('k') => Some(Action::NextDay),
-        KeyCode::Esc => Some(Action::Cancel),
+    match (key.code, key.modifiers) {
+        (KeyCode::Right | KeyCode::Char('l'), _) => Some(Action::ToggleFocus),
+        (KeyCode::Down | KeyCode::Char('j'), KeyModifiers::NONE) => {
+            Some(Action::PreviousJournalEntry)
+        }
+        (KeyCode::Up | KeyCode::Char('k'), _) => Some(Action::NextJournalEntry),
+        (KeyCode::Char('J'), KeyModifiers::SHIFT | KeyModifiers::NONE) => Some(Action::ToggleMode),
+        (KeyCode::Esc, _) => Some(Action::Cancel),
         _ => None,
     }
 }
 
 pub fn archive_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
-    match key.code {
-        KeyCode::Char('K') => Some(Action::ToggleMode),
-        KeyCode::Esc => Some(Action::Cancel),
+    match (key.code, key.modifiers) {
+        (KeyCode::Down | KeyCode::Char('j'), KeyModifiers::NONE) => {
+            Some(Action::PreviousArchiveNote)
+        }
+        (KeyCode::Up | KeyCode::Char('k'), _) => Some(Action::NextArchiveNote),
+        (KeyCode::Char('K'), KeyModifiers::SHIFT | KeyModifiers::NONE) => Some(Action::ToggleMode),
+        (KeyCode::Esc, _) => Some(Action::Cancel),
         _ => None,
     }
 }

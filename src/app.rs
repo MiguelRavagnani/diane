@@ -102,9 +102,17 @@ pub fn update(app: &mut App, action: Action) -> bool {
             false
         }
         Action::ToggleFocus => {
-            if let Some(Window::Library { focus, .. }) = &mut app.pane {
+            if let Some(Window::Library {
+                focus,
+                content_scroll,
+                ..
+            }) = &mut app.pane
+            {
                 *focus = match focus {
-                    Focus::Content => Focus::Sidepane,
+                    Focus::Content => {
+                        *content_scroll = 0;
+                        Focus::Sidepane
+                    }
                     Focus::Sidepane => Focus::Content,
                 }
             }

@@ -212,10 +212,13 @@ fn record_lines(entry: &Day, width: u16, theme: &Theme) -> Vec<Line<'static>> {
         .collect()
 }
 
-fn draw_note(frame: &mut Frame, area: Rect, note: &Note, _scroll: &mut usize, theme: &Theme) {
+fn draw_note(frame: &mut Frame, area: Rect, note: &Note, scroll: &mut usize, theme: &Theme) {
     let [inner] = Layout::horizontal([Constraint::Min(90)])
         .flex(Flex::Center)
         .areas(area.inner(Margin::new(6, 1)));
+
+    let [text_area, bar_area] =
+        Layout::horizontal([Constraint::Min(0), Constraint::Length(10)]).areas(inner);
 
     let markdown_theme = Options::new(*theme);
 
@@ -225,12 +228,16 @@ fn draw_note(frame: &mut Frame, area: Rect, note: &Note, _scroll: &mut usize, th
     let note_rows: Vec<Line> = rendered
         .lines
         .iter()
-        .flat_map(|line| textwrap::wrap_first_fit(line, inner.width))
+        .flat_map(|line| textwrap::wrap_first_fit(line, text_area.width))
         .collect();
 
+    let scroll_constraint = note_rows.len();
     let note_paragraph = Paragraph::new(note_rows).style(Style::default().fg(theme.text));
+    let viewport = text_area.height as usize;
 
-    frame.render_widget(note_paragraph, inner);
+    render_content_scrollbar(frame, scroll, scroll_constraint, viewport, bar_area, theme);
+
+    frame.render_widget(note_paragraph.scroll((*scroll as u16, 0)), text_area);
 }
 
 fn draw_records(
@@ -255,9 +262,6 @@ fn draw_records(
     let entry_inner_rows = record_lines(entry, wrap_widht, theme);
     let viewport = text_area.height as usize;
 
-    let max_scroll = entry_inner_rows.len().saturating_sub(viewport);
-    *scroll = (*scroll).min(max_scroll);
-
     // Note content title. The date of the journal entry, and how many records It has
     frame.render_widget(
         Paragraph::new(
@@ -276,23 +280,33 @@ fn draw_records(
         title,
     );
 
+    render_content_scrollbar(
+        frame,
+        scroll,
+        entry_inner_rows.len(),
+        viewport,
+        bar_area,
+        theme,
+    );
+
     // Rendering rows witing margin
     frame.render_widget(
         Paragraph::new(entry_inner_rows).scroll((*scroll as u16, 0)),
         text_area,
     );
-
-    render_content_scrollbar(frame, scroll, max_scroll, viewport, bar_area, theme);
 }
 
 fn render_content_scrollbar(
     frame: &mut Frame,
     scroll: &mut usize,
-    max_scroll: usize,
+    scroll_constraint: usize,
     viewport: usize,
     area: Rect,
     theme: &Theme,
 ) {
+    let max_scroll = scroll_constraint.saturating_sub(viewport);
+    *scroll = (*scroll).min(max_scroll);
+
     if max_scroll > 0 {
         frame.render_stateful_widget(
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
@@ -310,7 +324,6 @@ fn render_content_scrollbar(
                 .position(*scroll),
         );
     }
-    todo!()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -471,10 +484,13 @@ fn draw_library(
             }
         }
     }
+
     let footer_note = if journal_sidepane_focused {
-        journal_browsing_sidepane_instructions()
+        journal_sidepane_instructions()
+    } else if archive_sidepane_focused {
+        archive_sidepane_instructions()
     } else {
-        journal_focused_record_instructions()
+        content_instructions()
     };
 
     frame.render_widget(
@@ -600,10 +616,22 @@ fn draw_note_list(
                     ),
                 };
 
-                let pad = (notes_area.width as usize).saturating_sub(title.len() + 2);
+                let title_render = match title
+                    .char_indices()
+                    .nth(notes_area.width.saturating_sub(2).into())
+                {
+                    Some((idx, _)) => format!("{}...", &title[..idx.saturating_sub(3)]),
+                    None => title,
+                };
 
-                Line::from(vec![gutter, Span::raw(title), Span::raw(" ".repeat(pad))])
-                    .style(style_note)
+                let pad = (notes_area.width as usize).saturating_sub(title_render.len() + 2);
+
+                Line::from(vec![
+                    gutter,
+                    Span::raw(title_render),
+                    Span::raw(" ".repeat(pad)),
+                ])
+                .style(style_note)
             })
             .collect::<Vec<_>>(),
     );
@@ -628,17 +656,16 @@ pub fn capture_action(key: KeyEvent) -> Option<Action> {
     }
 }
 
-fn journal_browsing_sidepane_instructions() -> &'static str {
-    "j/k or ↑/↓ select day  ·  l or → open  ·  esc quit"
+fn journal_sidepane_instructions() -> &'static str {
+    "j/k or ↑/↓ select day  ·  l or → open  ·  SHIFT + j archive  ·  esc quit"
 }
 
-fn journal_focused_record_instructions() -> &'static str {
+fn content_instructions() -> &'static str {
     "j/k or ↑/↓ scroll up or down  ·  h or ← back  ·  esc quit"
 }
 
-#[allow(dead_code)]
-fn journal_capturing_instructions() -> &'static str {
-    "h or ← back  ·  esc quit"
+fn archive_sidepane_instructions() -> &'static str {
+    "j/k or ↑/↓ select note  ·  l or → open  ·  SHIFT + k journal  ·  esc quit"
 }
 
 pub fn journal_browsing_sidepane_action(key: KeyEvent) -> Option<Action> {
@@ -681,6 +708,8 @@ pub fn archive_focused_record_action(key: KeyEvent) -> Option<Action> {
     match key.code {
         KeyCode::Left | KeyCode::Char('h') => Some(Action::ToggleFocus),
         KeyCode::Esc => Some(Action::Cancel),
+        KeyCode::Down | KeyCode::Char('j') => Some(Action::ScrollbarNext),
+        KeyCode::Up | KeyCode::Char('k') => Some(Action::ScrollbarPrevious),
         _ => None,
     }
 }

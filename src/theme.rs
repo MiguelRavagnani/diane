@@ -4,6 +4,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     widgets::Widget,
 };
+use tui_markdown::{AlertKind, StyleSheet};
 //
 // This will chage a lot, so i think I prefere to keep the names as
 // their hex equivalent untill I settle. Then Ill look for more stylistic names
@@ -32,6 +33,7 @@ pub const TITLE: &str = "⢀⣴⣄⢴⣷⣄ DIANE:";
 const FILL_CHAR: char = '∙';
 const NEGATIVE_CHAR: char = ' ';
 
+#[derive(Clone, Copy)]
 pub struct Theme {
     pub bg: Color,
     pub art: Color,
@@ -48,6 +50,106 @@ pub struct Theme {
     pub selected_bg: Color,
     pub selected_bg_dim: Color,
     pub selected_fg: Color,
+}
+
+impl StyleSheet for Theme {
+    fn heading(&self, level: u8) -> Style {
+        match level {
+            1 => Style::default()
+                .bg(self.selected_bg)
+                .fg(self.selected_fg)
+                .add_modifier(Modifier::BOLD),
+            2 => Style::default().fg(self.title).add_modifier(Modifier::BOLD),
+            3 => Style::default()
+                .fg(self.title)
+                .add_modifier(Modifier::BOLD | Modifier::ITALIC),
+            _ => Style::default()
+                .fg(self.hint)
+                .add_modifier(Modifier::ITALIC),
+        }
+    }
+
+    fn code(&self) -> Style {
+        Style::default().fg(self.hint).bg(self.selected_bg_dim)
+    }
+
+    fn link(&self) -> Style {
+        Style::default()
+            .fg(self.hint)
+            .add_modifier(Modifier::UNDERLINED)
+    }
+
+    fn blockquote(&self) -> Style {
+        Style::default()
+            .fg(self.text_dim)
+            .add_modifier(Modifier::ITALIC)
+    }
+
+    fn heading_meta(&self) -> Style {
+        Style::default().fg(self.text_dim)
+    }
+
+    fn metadata_block(&self) -> Style {
+        Style::default().fg(self.text_dim)
+    }
+
+    fn html(&self) -> Style {
+        Style::default().fg(self.text_dim)
+    }
+
+    fn math_inline(&self) -> Style {
+        Style::default()
+            .fg(self.hint)
+            .add_modifier(Modifier::ITALIC)
+    }
+
+    fn math_display(&self) -> Style {
+        Style::default().fg(self.hint)
+    }
+
+    fn footnote_ref(&self) -> Style {
+        Style::default()
+            .fg(self.text_dim)
+            .add_modifier(Modifier::ITALIC)
+    }
+
+    fn footnote_def(&self) -> Style {
+        Style::default().fg(self.text_dim)
+    }
+
+    fn definition_term(&self) -> Style {
+        Style::default().fg(self.text).add_modifier(Modifier::BOLD)
+    }
+
+    fn definition_description(&self) -> Style {
+        Style::default().fg(self.text_dim)
+    }
+
+    fn alert(&self, kind: AlertKind) -> Style {
+        match kind {
+            AlertKind::Note | AlertKind::Tip => Style::default().fg(self.text_dim),
+            AlertKind::Important => Style::default().fg(self.title),
+            AlertKind::Warning | AlertKind::Caution => Style::default().fg(self.hint),
+        }
+    }
+
+    fn table_header(&self) -> Style {
+        Style::default().fg(self.title).add_modifier(Modifier::BOLD)
+    }
+
+    fn table_cell(&self) -> Style {
+        Style::default().fg(self.text)
+    }
+
+    fn table_border(&self) -> Style {
+        Style::default().fg(self.divider)
+    }
+
+    fn image_alt(&self) -> Style {
+        Style::default()
+            .fg(self.text_dim)
+            .add_modifier(Modifier::ITALIC)
+    }
 }
 
 pub const DIANE: Theme = Theme {

@@ -15,6 +15,7 @@ use ratatui::{
     },
 };
 use ratatui_textwrap::algorithms::textwrap;
+use tui_markdown::{Options, from_str_with_options};
 
 use crate::{
     app::{Action, App, Focus, Mode, Window, update},
@@ -211,36 +212,25 @@ fn record_lines(entry: &Day, width: u16, theme: &Theme) -> Vec<Line<'static>> {
         .collect()
 }
 
-fn render_frontmatter(frame: &mut Frame, text: &str, style: &Style, area: Rect) {
-    frame.render_widget(
-        Paragraph::new(Line::from(vec![Span::styled(text, *style)]).left_aligned()),
-        area,
-    );
-}
-
 fn draw_note(frame: &mut Frame, area: Rect, note: &Note, _scroll: &mut usize, theme: &Theme) {
     let [inner] = Layout::horizontal([Constraint::Min(90)])
         .flex(Flex::Center)
         .areas(area.inner(Margin::new(6, 1)));
 
-    let [frontmatter, content] =
-        Layout::vertical([Constraint::Length(5), Constraint::Fill(1)]).areas(inner);
+    let markdown_theme = Options::new(*theme);
 
-    let [
-        frontmatter_start,
-        title,
-        created_at,
-        updated_at,
-        frontmatter_end,
-    ] = Layout::vertical(Constraint::from_lengths([1, 1, 1, 1, 1])).areas(frontmatter);
+    let note_text = &note.to_text();
+    let rendered = from_str_with_options(note_text, &markdown_theme);
 
-    let divider_style = Style::new().fg(theme.text_dim).add_modifier(Modifier::BOLD);
+    let note_rows: Vec<Line> = rendered
+        .lines
+        .iter()
+        .flat_map(|line| textwrap::wrap_first_fit(line, inner.width))
+        .collect();
 
-    render_frontmatter(frame, "---", &divider_style, frontmatter_start);
-    render_frontmatter(frame, &note.title, &divider_style, title);
-    render_frontmatter(frame, &note.created.to_string(), &divider_style, created_at);
-    render_frontmatter(frame, &note.updated.to_string(), &divider_style, updated_at);
-    render_frontmatter(frame, "---", &divider_style, frontmatter_end);
+    let note_paragraph = Paragraph::new(note_rows).style(Style::default().fg(theme.text));
+
+    frame.render_widget(note_paragraph, inner);
 }
 
 fn draw_records(
@@ -292,6 +282,17 @@ fn draw_records(
         text_area,
     );
 
+    render_content_scrollbar(frame, scroll, max_scroll, viewport, bar_area, theme);
+}
+
+fn render_content_scrollbar(
+    frame: &mut Frame,
+    scroll: &mut usize,
+    max_scroll: usize,
+    viewport: usize,
+    area: Rect,
+    theme: &Theme,
+) {
     if max_scroll > 0 {
         frame.render_stateful_widget(
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
@@ -302,13 +303,14 @@ fn draw_records(
                     end: "▼",
                 })
                 .style(Style::new().fg(theme.hint)),
-            bar_area,
+            area,
             &mut ScrollbarState::default()
                 .content_length(max_scroll + 1) // scroll positions: 0..=max_scroll
                 .viewport_content_length(viewport) // visible rows
                 .position(*scroll),
         );
     }
+    todo!()
 }
 
 #[allow(clippy::too_many_arguments)]

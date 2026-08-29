@@ -19,7 +19,8 @@ pub enum Window {
         selected_note: usize,
         mode: Mode,
         focus: Focus,
-        sidepane_scroll: usize,
+        archive_scroll: usize,
+        journal_scroll: usize,
         content_scroll: usize,
     },
     Capture {
@@ -64,7 +65,7 @@ pub fn update(app: &mut App, action: Action) -> bool {
             if let Some(Window::Library {
                 focus,
                 content_scroll,
-                sidepane_scroll,
+                journal_scroll: sidepane_scroll,
                 ..
             }) = &mut app.pane
             {
@@ -80,7 +81,7 @@ pub fn update(app: &mut App, action: Action) -> bool {
             if let Some(Window::Library {
                 focus,
                 content_scroll,
-                sidepane_scroll,
+                journal_scroll: sidepane_scroll,
                 ..
             }) = &mut app.pane
             {
@@ -121,42 +122,50 @@ pub fn update(app: &mut App, action: Action) -> bool {
         Action::PreviousJournalEntry => {
             if let Some(Window::Library {
                 selected_entry: selected,
+                journal_scroll: scroll,
                 ..
             }) = &mut app.pane
                 && let Some((&date, _)) = app.days.range(..*selected).next_back()
             {
                 *selected = date;
+                *scroll += 1;
             }
             false
         }
         Action::NextJournalEntry => {
             if let Some(Window::Library {
                 selected_entry: selected,
+                journal_scroll: scroll,
                 ..
             }) = &mut app.pane
                 && let Some((&date, _)) = app.days.range((Excluded(*selected), Unbounded)).next()
             {
                 *selected = date;
+                *scroll = scroll.saturating_sub(1);
             }
             false
         }
         Action::PreviousArchiveNote => {
             if let Some(Window::Library {
                 selected_note: selected,
+                archive_scroll: scroll,
                 ..
             }) = &mut app.pane
             {
                 *selected = selected.saturating_sub(1);
+                *scroll += 1;
             }
             false
         }
         Action::NextArchiveNote => {
             if let Some(Window::Library {
                 selected_note: selected,
+                archive_scroll: scroll,
                 ..
             }) = &mut app.pane
             {
                 *selected = (*selected + 1).min(app.notes.len().saturating_sub(1));
+                *scroll = scroll.saturating_sub(1);
             }
             false
         }
@@ -230,8 +239,9 @@ impl App {
                 selected_note: 0,
                 mode: Mode::Journal,
                 focus: Focus::Sidepane,
+                archive_scroll: 0,
+                journal_scroll: 0,
                 content_scroll: 0,
-                sidepane_scroll: 0,
             }),
             should_quit: false,
             theme: Theme::named(&config.theme),

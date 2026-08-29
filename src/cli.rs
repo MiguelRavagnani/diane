@@ -36,8 +36,9 @@ impl Cli {
                 selected_note: 0,
                 mode: Mode::Journal,
                 focus: Focus::Sidepane,
+                archive_scroll: 0,
+                journal_scroll: 0,
                 content_scroll: 0,
-                sidepane_scroll: 0,
             }
         }
     }

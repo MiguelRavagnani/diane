@@ -58,7 +58,8 @@ fn draw(frame: &mut Frame, app: &mut App) {
             selected_note,
             mode,
             focus,
-            sidepane_scroll,
+            archive_scroll,
+            journal_scroll,
             content_scroll,
         }) => {
             background(frame);
@@ -68,7 +69,8 @@ fn draw(frame: &mut Frame, app: &mut App) {
                 &app.notes,
                 mode,
                 focus,
-                sidepane_scroll,
+                archive_scroll,
+                journal_scroll,
                 content_scroll,
                 selected_entry,
                 selected_note,
@@ -296,6 +298,39 @@ fn draw_records(
     );
 }
 
+fn render_sidepane_scrollbar(
+    frame: &mut Frame,
+    scroll: &mut usize,
+    scroll_constraint: usize,
+    viewport: usize,
+    area: Rect,
+    theme: &Theme,
+) {
+    let max_scroll = scroll_constraint.saturating_sub(viewport);
+    *scroll = (*scroll).min(max_scroll);
+
+    let [top, _, bottom] = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Fill(1),
+        Constraint::Length(1),
+    ])
+    .areas(area);
+
+    if *scroll > 0 {
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled("...", Style::new().fg(theme.hint)))).centered(),
+            top,
+        );
+    }
+
+    if *scroll < max_scroll {
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled("...", Style::new().fg(theme.hint)))).centered(),
+            bottom,
+        );
+    }
+}
+
 fn render_content_scrollbar(
     frame: &mut Frame,
     scroll: &mut usize,
@@ -333,7 +368,8 @@ fn draw_library(
     notes: &[Note],
     mode: &mut Mode,
     focus: &Focus,
-    _sidepane_scroll: &mut usize,
+    archive_scroll: &mut usize,
+    journal_scroll: &mut usize,
     content_scroll: &mut usize,
     selected_entry: &NaiveDate,
     selected_note: &mut usize,
@@ -447,6 +483,7 @@ fn draw_library(
         selected_entry,
         days,
         journal_sidepane_focused,
+        journal_scroll,
         theme,
     );
 
@@ -456,6 +493,7 @@ fn draw_library(
         notes,
         selected_note,
         archive_sidepane_focused,
+        archive_scroll,
         theme,
     );
 
@@ -507,6 +545,7 @@ fn draw_day_list(
     selected: &NaiveDate,
     days: &BTreeMap<NaiveDate, Day>,
     focused: bool,
+    scroll: &mut usize,
     theme: &Theme,
 ) {
     let [day_list_title_area, _, day_list_area] = Layout::vertical([
@@ -565,6 +604,31 @@ fn draw_day_list(
             .collect::<Vec<_>>(),
     );
 
+    let scroll_constraint = days.len();
+
+    let [day_list_area, scrollbar_area] = if scroll_constraint > day_list_area.height as usize {
+        [
+            day_list_area.inner(Margin {
+                horizontal: 0,
+                vertical: 1,
+            }),
+            day_list_area,
+        ]
+    } else {
+        [day_list_area, Rect::ZERO]
+    };
+
+    let viewport = day_list_area.height as usize;
+
+    render_sidepane_scrollbar(
+        frame,
+        scroll,
+        scroll_constraint,
+        viewport,
+        scrollbar_area,
+        theme,
+    );
+
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Journal",
@@ -572,7 +636,8 @@ fn draw_day_list(
         ))),
         day_list_title_area,
     );
-    frame.render_widget(day_list, day_list_area);
+
+    frame.render_widget(day_list.scroll((*scroll as u16, 0)), day_list_area);
 }
 
 fn draw_note_list(
@@ -581,6 +646,7 @@ fn draw_note_list(
     notes: &[Note],
     selected: &usize,
     focused: bool,
+    scroll: &mut usize,
     theme: &Theme,
 ) {
     let [notes_title_area, _, notes_area] = Layout::vertical([
@@ -636,6 +702,30 @@ fn draw_note_list(
             .collect::<Vec<_>>(),
     );
 
+    let scroll_constraint = notes.len();
+
+    let [notes_area, scrollbar_area] = if scroll_constraint > notes_area.height as usize {
+        [
+            notes_area.inner(Margin {
+                horizontal: 0,
+                vertical: 1,
+            }),
+            notes_area,
+        ]
+    } else {
+        [notes_area, Rect::ZERO]
+    };
+
+    let viewport = notes_area.height as usize;
+
+    render_sidepane_scrollbar(
+        frame,
+        scroll,
+        scroll_constraint,
+        viewport,
+        scrollbar_area,
+        theme,
+    );
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
             "Archive",
@@ -643,7 +733,7 @@ fn draw_note_list(
         ))),
         notes_title_area,
     );
-    frame.render_widget(note_list, notes_area);
+    frame.render_widget(note_list.scroll((*scroll as u16, 0)), notes_area);
 }
 
 pub fn capture_action(key: KeyEvent) -> Option<Action> {

@@ -22,7 +22,11 @@ where
 
 #[derive(Deserialize)]
 pub struct Config {
-    #[serde(default = "default_root", deserialize_with = "root_or_default")]
+    #[serde(
+        rename = "root",
+        default = "default_root",
+        deserialize_with = "root_or_default"
+    )]
     pub diane_root: PathBuf,
 
     #[serde(default)]

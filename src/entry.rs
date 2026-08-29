@@ -169,4 +169,28 @@ mod tests {
         let note = Note::new("x".into(), String::new(), Some(d)).unwrap();
         assert_eq!(note.created, d);
     }
+
+    #[test]
+    fn note_roundtrips_through_text() {
+        let note = sample();
+        let back = Note::try_from(note.to_text()).unwrap();
+        assert_eq!(back.title, note.title);
+        assert_eq!(back.slug, note.slug);
+        assert_eq!(back.created, note.created);
+        assert_eq!(back.updated, note.updated);
+        assert_eq!(back.body.trim(), note.body);
+    }
+
+    #[test]
+    fn record_parses_time_and_text() {
+        let r = Record::try_from("-  09:30   shipped the parser  ".to_string()).unwrap();
+        assert_eq!(r.at, NaiveTime::from_hms_opt(9, 30, 0).unwrap());
+        assert_eq!(r.text, "shipped the parser");
+    }
+
+    #[test]
+    fn record_rejects_non_record_lines() {
+        assert!(Record::try_from("# 2026-08-29".to_string()).is_err());
+        assert!(Record::try_from("- 25:00 bad hour".to_string()).is_err());
+    }
 }

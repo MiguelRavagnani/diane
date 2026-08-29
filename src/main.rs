@@ -29,8 +29,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             app.retrieve_journal()?;
             app.retrieve_archive()?;
             let mut terminal = ratatui::init();
-            run(&mut terminal, &mut app)?;
+            let result = run(&mut terminal, &mut app);
             ratatui::restore();
+            result?;
         }
     }
 
@@ -40,10 +41,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use assert_cmd::Command;
+    use tempfile::TempDir;
 
     #[test]
-    fn runs() {
-        let mut cmd = Command::cargo_bin("diane").unwrap();
-        cmd.assert().success();
+    fn records_from_args() {
+        let root = TempDir::new().unwrap();
+
+        Command::cargo_bin("diane")
+            .unwrap()
+            .env("DIANE_ROOT", root.path())
+            .arg("wrote a smoke test")
+            .assert()
+            .success();
+
+        let journal = root.path().join("journal");
+        let entry = std::fs::read_dir(&journal)
+            .expect("journal dir should exist under DIANE_DIANE_ROOT")
+            .next()
+            .expect("journal should have one file")
+            .unwrap();
+        let text = std::fs::read_to_string(entry.path()).unwrap();
+        assert!(text.contains("wrote a smoke test"), "got: {text}");
     }
 }

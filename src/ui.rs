@@ -803,3 +803,48 @@ pub fn archive_focused_record_action(key: KeyEvent) -> Option<Action> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+    use std::path::PathBuf;
+
+    fn rows(backend: &TestBackend) -> Vec<String> {
+        let buffer = backend.buffer();
+        (0..buffer.area.height)
+            .map(|y| {
+                (0..buffer.area.width)
+                    .map(|x| buffer[(x, y)].symbol())
+                    .collect()
+            })
+            .collect()
+    }
+
+    fn app() -> App {
+        App::new(&Config {
+            diane_root: PathBuf::from("."),
+            theme: String::new(),
+        })
+    }
+
+    #[test]
+    fn draws_capture_text() {
+        let mut app = app();
+        app.pane = Some(Window::Capture {
+            text: "hello ratatui".into(),
+            character_index: 13,
+        });
+
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+        assert!(
+            rows(terminal.backend())
+                .iter()
+                .any(|row| row.contains("hello ratatui"))
+        );
+    }
+}

@@ -129,3 +129,50 @@ impl Vault {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveTime;
+    use tempfile::TempDir;
+
+    fn vault(dir: &TempDir) -> Vault {
+        Vault::new(&Config {
+            diane_root: dir.path().to_path_buf(),
+            theme: String::new(),
+        })
+    }
+
+    #[test]
+    fn append_then_recover_journal_records() {
+        let dir = TempDir::new().unwrap();
+        let vault = vault(&dir);
+        let date = NaiveDate::from_ymd_opt(2026, 8, 29).unwrap();
+        let mut records = vec![Record {
+            at: NaiveTime::from_hms_opt(9, 30, 0).unwrap(),
+            text: "wrote tests".into(),
+        }];
+
+        vault.append_journal_records(date, &mut records).unwrap();
+        assert!(records.is_empty(), "append should drain the buffer");
+
+        let days = vault.recover_journal_records().unwrap();
+        let day = days.get(&date).unwrap();
+        assert_eq!(day.records.len(), 1);
+        assert_eq!(day.records[0].text, "wrote tests");
+    }
+
+    #[test]
+    fn save_then_recover_archive_note() {
+        let dir = TempDir::new().unwrap();
+        let vault = vault(&dir);
+        let note = Note::new("Kafka setup".into(), "body".into(), None).unwrap();
+
+        vault.save_archive_note(&note).unwrap();
+
+        let notes = vault.recover_archive_notes().unwrap();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].slug, "kafka-setup");
+        assert_eq!(notes[0].title, "Kafka setup");
+    }
+}

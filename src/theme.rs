@@ -5,28 +5,16 @@ use ratatui::{
     widgets::Widget,
 };
 use tui_markdown::{AlertKind, StyleSheet};
-//
-// This will chage a lot, so i think I prefere to keep the names as
-// their hex equivalent untill I settle. Then Ill look for more stylistic names
-pub const RED_45060F: Color = Color::Rgb(0x45, 0x06, 0x0f);
-pub const RED_6E0B22: Color = Color::Rgb(0x6e, 0x0b, 0x22);
-pub const RED_9B1239: Color = Color::Rgb(0x9b, 0x12, 0x39);
-pub const RED_C4184F: Color = Color::Rgb(0xc4, 0x18, 0x4f);
-pub const RED_DE2467: Color = Color::Rgb(0xde, 0x24, 0x67);
-pub const RED_F53D8F: Color = Color::Rgb(0xf5, 0x3d, 0x8f);
 
-pub const GRAY_150F13: Color = Color::Rgb(0x15, 0x0f, 0x13);
-pub const GRAY_1C141A: Color = Color::Rgb(0x1c, 0x14, 0x1a);
-pub const GRAY_231A20: Color = Color::Rgb(0x23, 0x1a, 0x20);
-pub const GRAY_2E1D28: Color = Color::Rgb(0x2e, 0x1d, 0x28);
-pub const GRAY_402836: Color = Color::Rgb(0x40, 0x28, 0x36);
-
-pub const GRAY_DDD0D6: Color = Color::Rgb(0xdd, 0xd0, 0xd6);
-pub const GRAY_907E88: Color = Color::Rgb(0x90, 0x7e, 0x88);
-pub const GRAY_61505A: Color = Color::Rgb(0x61, 0x50, 0x5a);
-
-pub const GRAY_1A0A12: Color = Color::Rgb(0x1a, 0x0a, 0x12);
-pub const GRAY_2A0F1A: Color = Color::Rgb(0x2a, 0x0f, 0x1a);
+pub const PLUM_261D2A: Color = Color::Rgb(0x26, 0x1d, 0x2a);
+pub const PLUM_43364A: Color = Color::Rgb(0x43, 0x36, 0x4a);
+pub const PLUM_332839: Color = Color::Rgb(0x33, 0x28, 0x39);
+pub const ROSE_FF528B: Color = Color::Rgb(0xff, 0x52, 0x8b);
+pub const ROSE_BA2658: Color = Color::Rgb(0xba, 0x26, 0x58);
+pub const GOLD_EBD35C: Color = Color::Rgb(0xeb, 0xd3, 0x5c);
+pub const GRAY_DDD6E0: Color = Color::Rgb(0xdd, 0xd6, 0xe0);
+pub const GRAY_A292AA: Color = Color::Rgb(0xa2, 0x92, 0xaa);
+pub const SAGE_81BB94: Color = Color::Rgb(0x81, 0xbb, 0x94);
 
 pub const TITLE: &str = "⢀⣴⣄⢴⣷⣄ DIANE:";
 
@@ -51,6 +39,24 @@ pub struct Theme {
     pub selected_bg_dim: Color,
     pub selected_fg: Color,
 }
+
+pub const DIANE: Theme = Theme {
+    bg: PLUM_261D2A,
+    art: ROSE_BA2658,
+
+    border: ROSE_BA2658,
+    divider: PLUM_43364A,
+    divider_focus: ROSE_BA2658,
+
+    text: GRAY_DDD6E0,
+    text_dim: GRAY_A292AA,
+    title: ROSE_FF528B,
+    hint: GOLD_EBD35C,
+
+    selected_bg: PLUM_43364A,
+    selected_bg_dim: PLUM_332839,
+    selected_fg: ROSE_FF528B,
+};
 
 impl StyleSheet for Theme {
     fn heading(&self, level: u8) -> Style {
@@ -151,24 +157,6 @@ impl StyleSheet for Theme {
             .add_modifier(Modifier::ITALIC)
     }
 }
-
-pub const DIANE: Theme = Theme {
-    bg: GRAY_1C141A,
-    art: RED_6E0B22,
-
-    border: RED_9B1239,
-    divider: GRAY_402836,
-    divider_focus: RED_6E0B22,
-
-    text: GRAY_DDD0D6,
-    text_dim: GRAY_907E88,
-    title: RED_DE2467,
-    hint: RED_F53D8F,
-
-    selected_bg: RED_DE2467,
-    selected_bg_dim: GRAY_402836,
-    selected_fg: GRAY_1C141A,
-};
 
 impl Default for Theme {
     fn default() -> Self {
